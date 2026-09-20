@@ -1,0 +1,2341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedMAS_DDx — Evaluation Runner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:           #070D1A;
+    --surface:      #0E1625;
+    --surface-2:    #121D30;
+    --surface-3:    #172238;
+    --border:       #1A2D4A;
+    --border-hi:    #264266;
+    --text:         #C8D8F0;
+    --text-muted:   #4A6080;
+    --text-dim:     #283D58;
+    --accent:       #00AAFF;
+    --accent-dim:   rgba(0,170,255,0.07);
+    --accent-glow:  rgba(0,170,255,0.18);
+    --green:        #00E676;
+    --green-bg:     rgba(0,230,118,0.07);
+    --yellow:       #FFB300;
+    --yellow-bg:    rgba(255,179,0,0.07);
+    --red:          #FF3D57;
+    --red-dim:      rgba(255,61,87,0.07);
+    --sim:          #A78BFA;
+    --sim-bg:       rgba(167,139,250,0.08);
+    --sim-border:   rgba(167,139,250,0.22);
+    --font:  'Inter', system-ui, sans-serif;
+    --mono:  'JetBrains Mono', monospace;
+  }
+
+  html { font-size: 15px; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  /* ── App shell ───────────────────────────────────────────── */
+
+  .eval-app {
+    display: grid;
+    grid-template-rows: 50px 1fr;
+    grid-template-columns: 320px 1fr;
+    min-height: 100vh;
+  }
+
+  /* ── Top bar ─────────────────────────────────────────────── */
+
+  .topbar {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+    height: 50px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    gap: 1rem;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    white-space: nowrap;
+  }
+
+  .topbar-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--border);
+    flex-shrink: 0;
+  }
+
+  .topbar-subtitle {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .topbar-spacer { flex: 1; }
+
+  .nav-link {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    transition: color 0.12s;
+  }
+
+  .nav-link:hover { color: var(--accent); }
+
+  /* ── Left rail (config + history) ───────────────────────── */
+
+  .config-rail {
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  .rail-block {
+    padding: 1.25rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .rail-block:last-child { border-bottom: none; flex: 1; }
+
+  .rail-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+  }
+
+  .rail-title-text {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ── Form fields ─────────────────────────────────────────── */
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .field label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .field input,
+  .field select {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.38rem 0.7rem;
+    font-family: var(--font);
+    font-size: 0.8rem;
+    color: var(--text);
+    transition: border-color 0.12s;
+    width: 100%;
+  }
+
+  .field select { appearance: none; cursor: pointer; }
+
+  .field input:focus,
+  .field select:focus {
+    outline: none;
+    border-color: var(--border-hi);
+  }
+
+  .field .hint {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+  }
+
+  /* ── Buttons ─────────────────────────────────────────────── */
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.38rem 0.85rem;
+    font-family: var(--font);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.12s;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover:not(:disabled) { background: #22BBFF; border-color: #22BBFF; }
+  .btn-primary:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border);
+  }
+  .btn-ghost:hover:not(:disabled) { border-color: var(--border-hi); color: var(--text); }
+  .btn-ghost:disabled { opacity: 0.35; cursor: not-allowed; }
+
+  .btn-danger {
+    background: var(--red-dim);
+    color: var(--red);
+    border-color: rgba(255,61,87,0.22);
+  }
+  .btn-danger:hover:not(:disabled) { background: rgba(255,61,87,0.14); }
+
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+  }
+
+  /* ── Batch config list ───────────────────────────────────── */
+
+  .config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+  }
+
+  .config-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    background: var(--surface-2);
+  }
+
+  .config-item-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .config-item-meta {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 0.1rem;
+  }
+
+  .btn-remove {
+    font-size: 0.65rem;
+    padding: 0.18rem 0.45rem;
+    background: var(--red-dim);
+    color: var(--red);
+    border: 1px solid rgba(255,61,87,0.2);
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background 0.12s;
+  }
+  .btn-remove:hover { background: rgba(255,61,87,0.14); }
+
+  /* ── History ─────────────────────────────────────────────── */
+
+  #history-card { flex: 1; overflow-y: auto; }
+
+  .history-empty {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    padding: 0.5rem 0;
+  }
+
+  /* batch group */
+  .batch-group {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+  }
+
+  .batch-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.65rem;
+    background: var(--surface-2);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s;
+  }
+
+  .batch-header:hover { background: var(--surface-3); }
+
+  .batch-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .batch-chevron {
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    transition: transform 0.15s;
+    flex-shrink: 0;
+    font-family: var(--mono);
+  }
+  .batch-chevron.open { transform: rotate(90deg); }
+
+  .batch-id {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .batch-ts {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+
+  .batch-header-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  .batch-run-count {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+
+  .batch-runs { display: none; }
+  .batch-runs.open { display: block; }
+
+  /* history row (v1) */
+  .history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.45rem 0.65rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    transition: all 0.1s;
+  }
+
+  .history-item:last-child { border-bottom: none; }
+  .history-item:hover { background: var(--surface-3); }
+  .history-item.selected {
+    background: var(--accent-dim);
+    border-left-color: var(--accent);
+  }
+
+  .history-item-left { min-width: 0; flex: 1; }
+
+  .history-item-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .history-item-meta {
+    font-size: 0.63rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 0.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .history-item-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .history-acc {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    padding: 0.1rem 0.4rem;
+    border-radius: 2px;
+  }
+
+  .history-cases { font-size: 0.62rem; color: var(--text-muted); }
+
+  /* batch test row (v2) */
+  .batch-test-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.42rem 0.65rem;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    border-left: 2px solid transparent;
+    transition: all 0.1s;
+  }
+
+  .batch-test-row:last-child { border-bottom: none; }
+  .batch-test-row:hover { background: var(--surface-3); }
+  .batch-test-row.selected {
+    background: var(--accent-dim);
+    border-left-color: var(--accent);
+  }
+
+  .batch-test-row-left { min-width: 0; flex: 1; }
+
+  .batch-test-row-title {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .batch-test-row-meta {
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 0.1rem;
+  }
+
+  .batch-test-row-right {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Badges ──────────────────────────────────────────────── */
+
+  .badge {
+    display: inline-block;
+    padding: 0.1rem 0.42rem;
+    border-radius: 2px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .badge-ok      { background: var(--green-bg); color: var(--green); border: 1px solid rgba(0,230,118,0.2); }
+  .badge-failed  { background: var(--red-dim);  color: var(--red);   border: 1px solid rgba(255,61,87,0.2); }
+  .badge-running { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(255,179,0,0.2); }
+  .badge-pending { background: var(--surface-3); color: var(--text-muted); border: 1px solid var(--border); }
+
+  /* acc pills */
+  .acc-pill {
+    display: inline-block;
+    padding: 0.1rem 0.42rem;
+    border-radius: 2px;
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+  }
+
+  .acc-high { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(0,230,118,0.2); }
+  .acc-mid  { background: var(--yellow-bg); color: var(--yellow); border: 1px solid rgba(255,179,0,0.2); }
+  .acc-low  { background: var(--red-dim);   color: var(--red);    border: 1px solid rgba(255,61,87,0.2); }
+  .acc-sim  { background: var(--sim-bg);    color: var(--sim);    border: 1px solid var(--sim-border); }
+
+  /* Similarity metrics section */
+  .sim-section-label {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sim);
+    padding-top: 0.25rem;
+    border-top: 1px solid var(--sim-border);
+    margin-top: 0.1rem;
+  }
+  .sim-section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--sim-border);
+  }
+
+  .metric-block.sim {
+    border-color: var(--sim-border);
+    background: var(--sim-bg);
+  }
+  .metric-block.sim .metric-label { color: var(--sim); opacity: 0.7; }
+  .metric-block.sim .metric-value { color: var(--sim); }
+  .metric-block.sim .metric-sub   { color: var(--sim); opacity: 0.5; }
+
+  .btn-retry-small {
+    font-size: 0.62rem;
+    padding: 0.14rem 0.45rem;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(0,170,255,0.2);
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 600;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .btn-retry-small:hover { background: var(--accent-glow); }
+
+  .btn-fix-status {
+    font-size: 0.62rem;
+    padding: 0.14rem 0.45rem;
+    background: var(--yellow-bg);
+    color: var(--yellow);
+    border: 1px solid rgba(255,179,0,0.2);
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: var(--font);
+    font-weight: 600;
+    transition: background 0.12s;
+    white-space: nowrap;
+  }
+  .btn-fix-status:hover { background: rgba(255,179,0,0.14); }
+
+  /* ── Case-error expandable section ──────────────────────── */
+
+  /* test-entry is now block so the case-errors section spans full width */
+  .test-entry { display: block; }
+
+  .test-entry-main {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .case-errors-section {
+    margin-top: 0.45rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .case-errors-header {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.65rem;
+    font-family: var(--mono);
+    color: var(--text-muted);
+  }
+
+  .case-errors-header:hover { color: var(--text); }
+
+  .case-errors-chevron {
+    font-size: 0.5rem;
+    transition: transform 0.15s;
+    color: var(--text-dim);
+  }
+
+  .case-errors-header-btns { margin-left: auto; display: flex; gap: 0.3rem; }
+
+  .case-errors-list {
+    display: none;
+    flex-direction: column;
+    gap: 0.3rem;
+    padding: 0.3rem 0 0.45rem;
+  }
+  .case-errors-list.open { display: flex; }
+
+  .case-error-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.35rem 0.5rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    border-left: 2px solid var(--red);
+  }
+
+  .case-error-cb {
+    margin-top: 0.15rem;
+    accent-color: var(--accent);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .case-error-info {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+  }
+
+  .case-error-id {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .case-error-prog {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+  }
+
+  .case-error-msg-text {
+    font-size: 0.63rem;
+    color: var(--red);
+    font-family: var(--mono);
+    word-break: break-word;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .case-errors-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 0.2rem;
+  }
+
+  /* ── Results rail ────────────────────────────────────────── */
+
+  .results-rail {
+    overflow-y: auto;
+    padding: 1.5rem;
+  }
+
+  .results-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 300px;
+    gap: 0.5rem;
+  }
+
+  .results-empty-icon {
+    font-family: var(--mono);
+    font-size: 1.5rem;
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+  }
+
+  .results-empty-text {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    letter-spacing: 0.04em;
+  }
+
+  /* results card */
+  .results-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 0.75rem;
+  }
+
+  .results-card-title {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* metrics grid */
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .metric-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 0.75rem 0.85rem;
+  }
+
+  .metric-block.tied {
+    border-style: dashed;
+    opacity: 0.8;
+  }
+
+  .metric-label {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.3rem;
+  }
+
+  .metric-value {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .metric-value.good { color: var(--green); }
+  .metric-value.mid  { color: var(--yellow); }
+  .metric-value.poor { color: var(--red); }
+
+  .metric-sub {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    font-family: var(--mono);
+    margin-top: 0.2rem;
+  }
+
+  /* section divider */
+  .section-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 1rem 0;
+  }
+
+  /* prognosis table */
+  .prognosis-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.75rem;
+  }
+
+  .prognosis-table th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prognosis-table td {
+    padding: 0.38rem 0.5rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+
+  .prognosis-table tr:last-child td { border-bottom: none; }
+
+  /* tests section */
+  .tests-section { margin-top: 1rem; }
+
+  .tests-section-title {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 0.6rem;
+  }
+
+  /* test entry */
+  .test-entry {
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    margin-bottom: 0.4rem;
+    background: var(--surface);
+    border-left: 2px solid transparent;
+    transition: border-color 0.1s;
+  }
+
+  .test-entry.status-ok      { border-left-color: var(--green); }
+  .test-entry.status-failed  { border-left-color: var(--red); }
+  .test-entry.status-running { border-left-color: var(--yellow); }
+  .test-entry.status-partial { border-left-color: var(--yellow); }
+  .test-entry.status-pending { border-left-color: var(--text-dim); }
+
+  .test-entry-left { flex: 1; min-width: 0; }
+
+  .test-entry-title {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .test-entry-meta {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-top: 0.15rem;
+  }
+
+  .test-error-msg {
+    font-size: 0.65rem;
+    color: var(--red);
+    font-family: var(--mono);
+    margin-top: 0.2rem;
+    word-break: break-all;
+  }
+
+  .test-entry-right {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Case detail panel ───────────────────────────────────── */
+
+  .case-detail-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    padding-top: 0.4rem;
+    border-top: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    transition: color 0.12s;
+  }
+  .case-detail-toggle:hover { color: var(--accent); }
+
+  .case-detail-chevron {
+    font-size: 0.5rem;
+    transition: transform 0.15s;
+    color: var(--text-dim);
+  }
+  .case-detail-chevron.open { transform: rotate(90deg); }
+
+  .case-detail-panel {
+    display: none;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+  }
+  .case-detail-panel.open { display: flex; }
+
+  /* one card per case */
+  .case-card {
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    background: var(--bg);
+  }
+
+  .case-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.4rem 0.65rem;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .case-card-id {
+    font-family: var(--mono);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+  }
+
+  .case-card-expected {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .case-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+  }
+
+  .case-card-body {
+    padding: 0.55rem 0.65rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+  }
+
+  /* Phase row inside a case card */
+  .phase-row {
+    display: grid;
+    grid-template-columns: 3.5rem 1fr auto;
+    align-items: start;
+    gap: 0.4rem;
+  }
+
+  .phase-label {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    padding-top: 0.12rem;
+  }
+
+  .phase-prediction {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+  }
+
+  .phase-top1 {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .phase-top1-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .phase-top3 {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+  }
+
+  .top3-tag {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    padding: 0.06rem 0.35rem;
+    border-radius: 2px;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  .top3-tag.hit {
+    background: var(--green-bg);
+    border-color: rgba(0,230,118,0.2);
+    color: var(--green);
+  }
+
+  .top3-tag.sim-hit {
+    background: var(--sim-bg);
+    border-color: var(--sim-border);
+    color: var(--sim);
+  }
+
+  .phase-scores {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    flex-shrink: 0;
+  }
+
+  .str-badge {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    padding: 0.08rem 0.32rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .str-badge.pass { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(0,230,118,0.2); }
+  .str-badge.fail { background: var(--red-dim);   color: var(--red);    border: 1px solid rgba(255,61,87,0.2); }
+
+  .sim-badge {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    padding: 0.08rem 0.32rem;
+    border-radius: 2px;
+    white-space: nowrap;
+    border: 1px solid var(--sim-border);
+    background: var(--sim-bg);
+    color: var(--sim);
+  }
+  .sim-badge.fail { background: var(--red-dim); color: var(--red); border-color: rgba(255,61,87,0.2); }
+
+  /* similarity metrics mini-table inside a case card */
+  .sim-metrics-panel {
+    margin-top: 0.1rem;
+    padding: 0.45rem 0.55rem;
+    background: var(--sim-bg);
+    border: 1px solid var(--sim-border);
+    border-radius: 2px;
+  }
+
+  .sim-metrics-title {
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--sim);
+    opacity: 0.7;
+    margin-bottom: 0.35rem;
+  }
+
+  .sim-metrics-grid {
+    display: grid;
+    grid-template-columns: 6rem repeat(2, 1fr);
+    gap: 0.15rem 0.5rem;
+    align-items: center;
+  }
+
+  .sim-col-header {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--sim);
+    opacity: 0.55;
+    padding-bottom: 0.15rem;
+    border-bottom: 1px solid var(--sim-border);
+  }
+
+  .sim-row-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    padding-right: 0.25rem;
+  }
+
+  .sim-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .sim-score-val {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--sim);
+  }
+  .sim-score-val.fail { color: var(--red); }
+
+  .sim-match-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .sim-match-dot.pass { background: var(--green); }
+  .sim-match-dot.fail { background: var(--red); }
+  .sim-match-dot.amber { background: var(--yellow); }
+
+  .sim-threshold-note {
+    grid-column: 1 / -1;
+    font-family: var(--mono);
+    font-size: 0.55rem;
+    color: var(--sim);
+    opacity: 0.45;
+    margin-top: 0.3rem;
+    padding-top: 0.25rem;
+    border-top: 1px solid var(--sim-border);
+  }
+
+  /* followup answers sub-panel */
+  .fu-toggle {
+    font-family: var(--mono);
+    font-size: 0.58rem;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.1rem;
+    transition: color 0.1s;
+  }
+  .fu-toggle:hover { color: var(--text-muted); }
+
+  .fu-answers {
+    display: none;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    padding: 0.35rem 0 0.1rem;
+  }
+  .fu-answers.open { display: flex; }
+
+  .fu-chip {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    padding: 0.1rem 0.42rem;
+    border-radius: 2px;
+    white-space: nowrap;
+  }
+  .fu-chip.yes { background: var(--green-bg);  color: var(--green);  border: 1px solid rgba(0,230,118,0.2); }
+  .fu-chip.no  { background: var(--red-dim);   color: var(--red);    border: 1px solid rgba(255,61,87,0.2); }
+  .fu-chip.neutral { background: var(--surface-3); color: var(--text-dim); border: 1px solid var(--border); }
+
+  /* ── Utility ─────────────────────────────────────────────── */
+
+  .hidden { display: none !important; }
+
+  .disclaimer {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-align: center;
+    padding: 1.5rem 0 0.5rem;
+    border-top: 1px solid var(--border);
+    margin-top: 1.5rem;
+  }
+
+  @media (max-width: 800px) {
+    .eval-app { grid-template-columns: 1fr; }
+    .config-rail { border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+    .results-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (max-width: 500px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="eval-app">
+
+  <!-- ── Top bar ─────────────────────────────────────────── -->
+  <header class="topbar">
+    <span class="logo">MedMAS_DDx</span>
+    <div class="topbar-divider"></div>
+    <span class="topbar-subtitle">Evaluation Runner</span>
+    <div class="topbar-spacer"></div>
+    <a class="nav-link" href="/">← Diagnostic UI</a>
+  </header>
+
+  <!-- ── Left rail ───────────────────────────────────────── -->
+  <aside class="config-rail">
+
+    <!-- Config block -->
+    <div class="rail-block">
+      <div class="rail-title">
+        <span class="rail-title-text">Configuration</span>
+      </div>
+
+      <div class="field">
+        <label for="f-prognosis">Prognosis filter</label>
+        <select id="f-prognosis">
+          <option value="">All prognoses</option>
+        </select>
+        <span class="hint">Loaded from the default CSV.</span>
+      </div>
+
+      <div class="field">
+        <label for="f-variant">Variant</label>
+        <select id="f-variant">
+          <option value="">All (100%, 80%, 50%)</option>
+          <option value="100">100% — full symptom set</option>
+          <option value="80">80% — partial symptoms</option>
+          <option value="50">50% — minimal symptoms</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-limit">Limit cases</label>
+        <input type="number" id="f-limit" min="1" placeholder="e.g. 5  (leave blank for all)">
+        <span class="hint">Max (case, variant) pairs to run.</span>
+      </div>
+
+      <div class="actions">
+        <button class="btn btn-primary" id="run-btn" onclick="startEval()">▶ Run</button>
+        <button class="btn btn-ghost" id="add-config-btn" onclick="addConfigFromForm()">＋ Add to batch</button>
+        <button class="btn btn-primary" id="run-batch-btn" onclick="startMultiEval()" disabled>▶ Batch (0)</button>
+        <button class="btn btn-ghost" id="load-diseases-btn" onclick="loadDiseases()">↺ Diseases</button>
+      </div>
+
+      <div class="config-list" id="config-list">
+        <div class="config-item" style="border-style:dashed;background:transparent;">
+          <div>
+            <div class="config-item-title" style="color:var(--text-muted);">No batch configs</div>
+            <div class="config-item-meta">Add configs to run in parallel.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History block -->
+    <div class="rail-block" id="history-card" style="flex:1;overflow-y:auto;">
+      <div class="rail-title">
+        <span class="rail-title-text">
+          History
+          <span id="history-count" style="margin-left:0.4rem;"></span>
+        </span>
+        <button class="btn btn-ghost" style="padding:0.2rem 0.55rem;font-size:0.62rem;" onclick="loadHistory()">↺</button>
+      </div>
+      <div id="history-list">
+        <p class="history-empty">Loading…</p>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- ── Results rail ─────────────────────────────────────── -->
+  <main class="results-rail">
+
+    <div id="results-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;min-height:300px;gap:0.5rem;">
+      <div style="font-family:var(--mono);font-size:2rem;color:var(--text-dim);">[ ]</div>
+      <div style="font-size:0.72rem;color:var(--text-dim);font-family:var(--mono);letter-spacing:0.05em;">Run an evaluation or select from history</div>
+    </div>
+
+    <div id="results-card" class="hidden">
+      <div class="results-card-header">
+        <span class="results-card-title" id="results-card-label">Results summary</span>
+        <span id="results-batch-status"></span>
+      </div>
+
+      <div class="results-grid" id="metrics-grid">
+        <!-- populated by JS -->
+      </div>
+
+      <!-- Per-prognosis table -->
+      <div id="prognosis-section" class="hidden">
+        <hr class="section-divider">
+        <div style="font-family:var(--mono);font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dim);margin-bottom:0.6rem;">
+          Per-prognosis breakdown
+        </div>
+        <table class="prognosis-table">
+          <thead>
+            <tr>
+              <th>Prognosis</th>
+              <th>n</th>
+              <th style="color:var(--sim)" title="Embedding cosine ≥ 0.60">Sim P1 Top-1</th>
+              <th style="color:var(--sim)" title="Embedding cosine ≥ 0.60">Sim P1 Top-3</th>
+              <th style="color:var(--sim)" title="Embedding cosine ≥ 0.60">Sim P2 Top-1</th>
+              <th style="color:var(--sim)" title="Embedding cosine ≥ 0.60">Sim P2 Top-3</th>
+              <th style="color:var(--sim)" title="Mean cosine similarity (Phase 1 top-1)">⌀ Sim P1</th>
+              <th style="color:var(--sim)" title="Mean cosine similarity (Phase 2 top-1)">⌀ Sim P2</th>
+            </tr>
+          </thead>
+          <tbody id="prognosis-table-body"></tbody>
+        </table>
+      </div>
+
+      <!-- Tests list (v2 only) -->
+      <div id="tests-section" class="hidden tests-section">
+        <hr class="section-divider">
+        <div class="tests-section-title">
+          <span>Tests in this batch</span>
+          <button id="retry-all-failed-btn" class="btn-retry-small hidden" onclick="retryAllFailed()">↺ Retry all failed</button>
+        </div>
+        <div id="tests-list"><!-- populated by JS --></div>
+      </div>
+
+      <p class="disclaimer">For research and development use only. Not for clinical decision-making.</p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+const API = window.location.origin;
+let currentRunId = null;
+let currentBatchId = null;
+let currentBatchFilename = 'batch.json';
+let eventSource = null;
+let batchConfigs = [];
+
+/* ── Helpers ───────────────────────────────────────────────── */
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+
+function accClass(v) {
+  if (v >= 0.75) return 'good';
+  if (v >= 0.45) return 'mid';
+  return 'poor';
+}
+
+function accPillClass(v) {
+  if (v == null) return '';
+  if (v >= 0.75) return 'acc-high';
+  if (v >= 0.45) return 'acc-mid';
+  return 'acc-low';
+}
+
+// Similarity scores use a fixed purple pill — they're always shown as "sim"
+function simPillClass() { return 'acc-sim'; }
+
+function formatTimestamp(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  } catch (_) { return iso; }
+}
+
+function showResultsPanel() {
+  const ph = document.getElementById('results-placeholder');
+  const rc = document.getElementById('results-card');
+  if (ph) ph.style.display = 'none';
+  rc.classList.remove('hidden');
+}
+
+/* ── Start single eval run ─────────────────────────────────── */
+
+async function startEval() {
+  const prognosis = document.getElementById('f-prognosis').value || null;
+  const variant   = document.getElementById('f-variant').value || null;
+  const limitRaw  = document.getElementById('f-limit').value.trim();
+  const limit     = limitRaw ? parseInt(limitRaw, 10) : null;
+
+  document.getElementById('results-card').classList.add('hidden');
+  document.getElementById('results-placeholder') && (document.getElementById('results-placeholder').style.display = '');
+  document.getElementById('run-btn').disabled = true;
+
+  if (eventSource) { eventSource.close(); eventSource = null; }
+
+  try {
+    const res = await fetch(`${API}/api/eval/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prognosis, variant, limit }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    currentRunId = data.run_id;
+    currentBatchId = data.batch_id;
+    currentBatchFilename = 'batch.json';
+    listenForOutput(currentRunId);
+  } catch (err) {
+    document.getElementById('run-btn').disabled = false;
+    alert(`Error: ${err.message}`);
+  }
+}
+
+/* ── Batch config management ───────────────────────────────── */
+
+function addConfigFromForm() {
+  const prognosis = document.getElementById('f-prognosis').value || null;
+  const variant   = document.getElementById('f-variant').value || null;
+  const limitRaw  = document.getElementById('f-limit').value.trim();
+  const limit     = limitRaw ? parseInt(limitRaw, 10) : null;
+  batchConfigs.push({ prognosis, variant, limit, csv_path: null });
+  renderBatchConfigs();
+}
+
+function removeBatchConfig(idx) {
+  batchConfigs = batchConfigs.filter((_, i) => i !== idx);
+  renderBatchConfigs();
+}
+
+function renderBatchConfigs() {
+  const list   = document.getElementById('config-list');
+  const runBtn = document.getElementById('run-batch-btn');
+  if (batchConfigs.length === 0) {
+    runBtn.disabled = true;
+    runBtn.textContent = '▶ Batch (0)';
+    list.innerHTML = `
+      <div class="config-item" style="border-style:dashed;background:transparent;">
+        <div>
+          <div class="config-item-title" style="color:var(--text-muted);">No batch configs</div>
+          <div class="config-item-meta">Add configs to run in parallel.</div>
+        </div>
+      </div>`;
+    return;
+  }
+  runBtn.disabled = false;
+  runBtn.textContent = `▶ Batch (${batchConfigs.length})`;
+  list.innerHTML = batchConfigs.map((c, i) => {
+    const prog    = c.prognosis ? `"${c.prognosis}"` : 'all';
+    const variant = c.variant ? `${c.variant}%` : 'all variants';
+    const limit   = c.limit != null ? `limit ${c.limit}` : 'no limit';
+    return `
+      <div class="config-item">
+        <div>
+          <div class="config-item-title">${esc(prog)} · ${esc(variant)}</div>
+          <div class="config-item-meta">${esc(limit)}</div>
+        </div>
+        <button class="btn-remove" onclick="removeBatchConfig(${i})">✕</button>
+      </div>`;
+  }).join('');
+}
+
+/* ── Start multi-test batch eval ───────────────────────────── */
+
+async function startMultiEval() {
+  if (batchConfigs.length === 0) return;
+  document.getElementById('results-card').classList.add('hidden');
+  document.getElementById('run-btn').disabled = true;
+  document.getElementById('run-batch-btn').disabled = true;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  try {
+    const res = await fetch(`${API}/api/eval/multi-run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ configs: batchConfigs }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    currentRunId = data.run_id;
+    currentBatchId = data.batch_id;
+    currentBatchFilename = 'batch.json';
+    listenForOutput(currentRunId);
+  } catch (err) {
+    document.getElementById('run-btn').disabled = false;
+    document.getElementById('run-batch-btn').disabled = batchConfigs.length === 0;
+    alert(`Error: ${err.message}`);
+  }
+}
+
+/* ── Load CSV diseases ─────────────────────────────────────── */
+
+async function loadDiseases() {
+  const select = document.getElementById('f-prognosis');
+  select.innerHTML = '<option value="">All prognoses</option>';
+  try {
+    const res = await fetch(`${API}/api/eval/csv-diseases`);
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    (data.diseases || []).forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d; opt.textContent = d;
+      select.appendChild(opt);
+    });
+  } catch (err) {
+    alert(`Error loading diseases: ${err.message}`);
+  }
+}
+
+/* ── Retry a single test ───────────────────────────────────── */
+
+async function retryTest(batchId, testId) {
+  document.getElementById('results-card').classList.add('hidden');
+  document.getElementById('run-btn').disabled = true;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  try {
+    const res = await fetch(`${API}/api/eval/retry-test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id: batchId, test_id: testId }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    currentRunId = data.run_id;
+    currentBatchId = batchId;
+    currentBatchFilename = 'batch.json';
+    listenForOutput(data.run_id);
+  } catch (err) {
+    document.getElementById('run-btn').disabled = false;
+    alert(`Error: ${err.message}`);
+  }
+}
+
+/* ── Retry all failed ──────────────────────────────────────── */
+
+async function retryAllFailed() {
+  if (!currentBatchId) return;
+  try {
+    const res = await fetch(`${API}/api/eval/batch/${encodeURIComponent(currentBatchId)}/batch.json`);
+    const data = await res.json();
+    if (!data.result) return;
+    const failedTests = (data.result.tests || []).filter(t => t.status === 'failed');
+    if (failedTests.length === 0) return;
+    for (const t of failedTests) {
+      await retryTest(currentBatchId, t.test_id);
+      await new Promise(resolve => {
+        const poll = setInterval(async () => {
+          if (!currentRunId) { clearInterval(poll); resolve(); return; }
+          try {
+            const r = await fetch(`${API}/api/eval/result/${currentRunId}`);
+            const d = await r.json();
+            if (d.status !== 'running') { clearInterval(poll); resolve(); }
+          } catch (_) { clearInterval(poll); resolve(); }
+        }, 2000);
+      });
+    }
+  } catch (err) { alert(`Error: ${err.message}`); }
+}
+
+/* ── Render results v2 ─────────────────────────────────────── */
+
+function renderResultsV2(report) {
+  const s    = report.summary || {};
+  const meta = report.meta    || {};
+  const tests = report.tests  || [];
+
+  showResultsPanel();
+
+  // Status badge
+  const statusEl = document.getElementById('results-batch-status');
+  const statusMap = { complete: '✓ complete', partial: '⚠ partial', in_progress: '◌ running' };
+  statusEl.textContent = statusMap[meta.status] || meta.status || '';
+  const sCls = meta.status === 'complete' ? 'badge-ok' : meta.status === 'partial' ? 'badge-running' : 'badge-failed';
+  statusEl.className = `badge ${sCls}`;
+
+  document.getElementById('results-card-label').textContent = `batch — ${meta.batch_id || ''}`;
+
+  // Metrics
+  const grid = document.getElementById('metrics-grid');
+  if (s && s.total_evaluated > 0) {
+    const simMetrics = [
+      { label: 'Sim P1 Top-1', value: s.sim_phase1_top1_accuracy, sub: `${s.sim_phase1_top1_correct||0}/${s.total_evaluated} · mean ${(s.mean_sim_score_phase1||0).toFixed(3)}` },
+      { label: 'Sim P1 Top-3', value: s.sim_phase1_top3_accuracy, sub: `${s.sim_phase1_top3_correct||0}/${s.total_evaluated}` },
+      { label: 'Sim P2 Top-1', value: s.sim_phase2_top1_accuracy, sub: `${s.sim_phase2_top1_correct||0}/${s.total_evaluated} · mean ${(s.mean_sim_score_phase2||0).toFixed(3)}` },
+      { label: 'Sim P2 Top-3', value: s.sim_phase2_top3_accuracy, sub: `${s.sim_phase2_top3_correct||0}/${s.total_evaluated}` },
+    ];
+    const metrics = [
+      { label: 'Avg dur.',   value: null, raw: `${(s.avg_duration_seconds||0).toFixed(1)}s`,  sub: 'per case' },
+      { label: 'Avg Qs',     value: null, raw: `${(s.avg_followup_questions||0).toFixed(1)}`, sub: 'per case' },
+      { label: 'Cases',      value: null, raw: `${s.total_evaluated}`, sub: `${meta.failed_tests||0} failed` },
+    ];
+
+    grid.innerHTML = simMetrics.map(m => {
+      const cls = m.value != null ? accClass(m.value) : '';
+      return `<div class="metric-block sim">
+        <div class="metric-label">${esc(m.label)}</div>
+        <div class="metric-value ${cls}">${m.value != null ? pct(m.value) : '—'}</div>
+        <div class="metric-sub">${esc(m.sub||'')}</div>
+      </div>`;
+    }).join('') + metrics.map(m => {
+      const display = m.value != null ? pct(m.value) : (m.raw ?? '—');
+      const cls     = m.value != null ? accClass(m.value) : '';
+      return `<div class="metric-block">
+        <div class="metric-label">${esc(m.label)}</div>
+        <div class="metric-value ${cls}">${esc(display)}</div>
+        <div class="metric-sub">${esc(m.sub||'')}</div>
+      </div>`;
+    }).join('');
+
+    // Per-prognosis
+    const pp = s.per_prognosis;
+    if (pp && Object.keys(pp).length > 0) {
+      document.getElementById('prognosis-table-body').innerHTML = Object.entries(pp)
+        .sort((a, b) => b[1].sim_phase2_top1_acc - a[1].sim_phase2_top1_acc)
+        .map(([prog, v]) => {
+          function simCell(val) {
+            if (val == null) return `<span style="color:var(--text-dim)">—</span>`;
+            return `<span class="acc-pill acc-sim">${pct(val)}</span>`;
+          }
+          function simScoreCell(val) {
+            if (val == null) return `<span style="color:var(--text-dim)">—</span>`;
+            return `<span style="font-family:var(--mono);font-size:0.72rem;color:var(--sim)">${(val).toFixed(3)}</span>`;
+          }
+          return `<tr>
+            <td>${esc(prog)}</td><td>${v.count}</td>
+            <td>${simCell(v.sim_phase1_top1_acc)}</td>
+            <td>${simCell(v.sim_phase1_top3_acc)}</td>
+            <td>${simCell(v.sim_phase2_top1_acc)}</td>
+            <td>${simCell(v.sim_phase2_top3_acc)}</td>
+            <td>${simScoreCell(v.mean_sim_score_phase1)}</td>
+            <td>${simScoreCell(v.mean_sim_score_phase2)}</td>
+          </tr>`;
+        }).join('');
+      document.getElementById('prognosis-section').classList.remove('hidden');
+    } else {
+      document.getElementById('prognosis-section').classList.add('hidden');
+    }
+  } else {
+    grid.innerHTML = `<p style="color:var(--text-muted);font-size:0.78rem;grid-column:1/-1;">
+      No successful tests yet.</p>`;
+    document.getElementById('prognosis-section').classList.add('hidden');
+  }
+
+  // Tests list — count tests that are failed/partial OR have case-level issues
+  const failedCount = tests.filter(t => t.status === 'failed').length;
+  const testsWithCaseIssues = tests.filter(t =>
+    (t.cases || []).some(c => c.error != null || c.status !== 'ok')
+  ).length;
+  const retryBtn = document.getElementById('retry-all-failed-btn');
+  if (failedCount > 0) {
+    retryBtn.textContent = `↺ Retry failed (${failedCount})`;
+    retryBtn.classList.remove('hidden');
+  } else {
+    retryBtn.classList.add('hidden');
+  }
+
+  document.getElementById('tests-list').innerHTML = tests.map(t => {
+    const ts = t.summary || {};
+    const isFailed = t.status === 'failed', isPartial = t.status === 'partial';
+    const isOk = t.status === 'ok';
+    const isRetryable = isFailed || isPartial;
+    const prog = t.prognosis_filter || 'all prognoses';
+    const variant = t.variant_filter ? `${t.variant_filter}%` : 'all';
+    const accDisplay = ts.sim_phase2_top1_accuracy != null ? `Sim P2 ${pct(ts.sim_phase2_top1_accuracy)}` : '';
+    const statusBadgeCls = {ok:'badge-ok',partial:'badge-failed',failed:'badge-failed',running:'badge-running',pending:'badge-pending'}[t.status] || 'badge-pending';
+    const statusLbl = {ok:'✓ ok',partial:'⚠ partial',failed:'✗ failed',running:'◌ running',pending:'⋯ pending'}[t.status] || t.status;
+    const errorMsg = isRetryable && t.error
+      ? `<div class="test-error-msg">${esc(t.error.split('\n')[0])}</div>` : '';
+    const retryHtml = isRetryable
+      ? `<button class="btn-retry-small" onclick="retryTest('${esc(currentBatchId||'')}','${esc(t.test_id)}')">↺ Retry</button>` : '';
+
+    // "Fix Status" button: shown when the stored data contradicts the status
+    // (e.g. status=failed but total_evaluated>0 and total_errors==0)
+    const tsEval   = ts.total_evaluated || 0;
+    const tsErrors = ts.total_errors    || 0;
+    const tsUnavail = ts.total_api_unavailable || 0;
+    const hasGoodData = tsEval > 0 && tsErrors === 0 && tsUnavail === 0;
+    const statusContradicts = (isFailed || isPartial) && hasGoodData;
+    const fixStatusHtml = statusContradicts
+      ? `<button class="btn-fix-status" title="Re-derive status from existing results"
+                 onclick="fixTestStatus('${esc(currentBatchId||'')}','${esc(t.test_id)}')">⚡ Fix status</button>`
+      : '';
+    const metaParts = [`id: ${t.test_id}`, t.total_cases ? `${t.total_cases} cases` : null, t.completed_at ? formatTimestamp(t.completed_at) : null].filter(Boolean);
+
+    // Case-level problems panel.
+    // A case is "problematic" if:
+    //   • error field is non-null (explicit error message set), OR
+    //   • status is not 'ok' (failed / error / api_unavailable / etc.)
+    // The 'status=ok but error!=null' pattern ("No extracted symptoms") is the
+    // most common silent failure and must be surfaced here.
+    const problemCases = (t.cases || []).filter(c => c.error != null || c.status !== 'ok');
+    let caseErrorsHtml = '';
+    if (problemCases.length > 0) {
+      const bId = esc(currentBatchId || '');
+      const tId = esc(t.test_id);
+      const allCaseIds = JSON.stringify(problemCases.map(c => c.case_id));
+
+      // Badge colour per case: red for outright errors, amber for silent ok-but-error
+      const caseRows = problemCases.map(c => {
+        const cbId    = `cb-${CSS.escape(t.test_id)}-${c.case_id}`;
+        const isSilent = c.status === 'ok' && c.error != null;
+        const rowBorder = isSilent ? 'var(--yellow)' : 'var(--red)';
+        const statusTag = isSilent
+          ? `<span style="font-family:var(--mono);font-size:.55rem;color:var(--yellow);border:1px solid rgba(255,179,0,.3);padding:.08rem .3rem;border-radius:2px;">silent</span>`
+          : `<span style="font-family:var(--mono);font-size:.55rem;color:var(--red);border:1px solid rgba(255,61,87,.3);padding:.08rem .3rem;border-radius:2px;">${esc(c.status)}</span>`;
+        const errText = c.error ? c.error.split('\n')[0] : `status: ${c.status}`;
+        return `<div class="case-error-row" style="border-left-color:${rowBorder}">
+          <input type="checkbox" class="case-error-cb" id="${cbId}"
+                 data-test-id="${tId}" data-case-id="${c.case_id}"
+                 onchange="updateCaseSelectBtn('${tId}')">
+          <div class="case-error-info">
+            <span class="case-error-id">Case #${c.case_id}</span>
+            ${statusTag}
+            <span class="case-error-prog">${esc(c.expected_prognosis || '?')}</span>
+            <span style="color:var(--text-dim)">·</span>
+            <span style="font-family:var(--mono);font-size:.65rem;color:var(--text-muted)">${esc(c.variant || '?')}%</span>
+          </div>
+          <div class="case-error-msg-text">${esc(errText)}</div>
+        </div>`;
+      }).join('');
+
+      const silentCount = problemCases.filter(c => c.status === 'ok' && c.error != null).length;
+      const headerLabel = silentCount > 0 && silentCount === problemCases.length
+        ? `${problemCases.length} silent failure${problemCases.length !== 1 ? 's' : ''}`
+        : `${problemCases.length} case issue${problemCases.length !== 1 ? 's' : ''}`;
+
+      caseErrorsHtml = `
+        <div class="case-errors-section">
+          <div class="case-errors-header" onclick="toggleCaseErrors('${tId}')">
+            <span class="case-errors-chevron" id="ce-chev-${tId}">▶</span>
+            <span>${headerLabel}</span>
+            <div class="case-errors-header-btns">
+              <button class="btn-retry-small"
+                      onclick="event.stopPropagation();retryCases('${bId}','${tId}',${allCaseIds})">
+                ↺ Retry all ${problemCases.length}
+              </button>
+            </div>
+          </div>
+          <div class="case-errors-list" id="cel-${tId}">
+            ${caseRows}
+            <div class="case-errors-actions">
+              <button class="btn-retry-small" id="retry-sel-btn-${tId}" disabled
+                      onclick="retrySelectedCases('${bId}','${tId}')">
+                ↺ Retry selected (0)
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // Similarity badge for this test
+    const simAcc = ts.sim_phase2_top1_accuracy;
+    const simBadge = (isOk && simAcc != null)
+      ? `<span class="acc-pill acc-sim" title="Sim P2 Top-1 (cosine ≥ 0.60)">∿ ${pct(simAcc)}</span>` : '';
+
+    // Case detail panel
+    const allCases = t.cases || [];
+    const caseDetailHtml = allCases.length > 0 ? `
+      <div class="case-detail-toggle" id="cd-toggle-${esc(t.test_id)}" onclick="toggleCaseDetail('${esc(t.test_id)}')">
+        <span class="case-detail-chevron" id="cd-chev-${esc(t.test_id)}">▶</span>
+        ${allCases.length} case${allCases.length !== 1 ? 's' : ''} · click to expand
+      </div>
+      <div class="case-detail-panel" id="cd-panel-${esc(t.test_id)}">
+        ${renderCaseCards(allCases, t.test_id)}
+      </div>` : '';
+
+    return `<div class="test-entry status-${t.status}">
+      <div class="test-entry-main">
+        <div class="test-entry-left">
+          <div class="test-entry-title">
+            <span>${esc(prog)}</span>
+            <span style="color:var(--text-dim)">·</span>
+            <span>${esc(variant)}</span>
+          </div>
+          <div class="test-entry-meta">${metaParts.map(esc).join(' · ')}</div>
+          ${errorMsg}
+        </div>
+        <div class="test-entry-right">
+          <span class="badge ${statusBadgeCls}">${statusLbl}</span>
+          ${isOk && accDisplay ? `<span class="acc-pill acc-sim">${esc(accDisplay)}</span>` : ''}
+          ${isOk && problemCases.length > 0 ? `<span style="font-family:var(--mono);font-size:.58rem;color:var(--yellow);border:1px solid rgba(255,179,0,.25);padding:.08rem .35rem;border-radius:2px;" title="${problemCases.length} case(s) with issues">⚠ ${problemCases.length}</span>` : ''}
+          ${fixStatusHtml}
+          ${retryHtml}
+        </div>
+      </div>
+      ${caseErrorsHtml}
+      ${caseDetailHtml}
+    </div>`;
+  }).join('');
+
+  document.getElementById('tests-section').classList.remove('hidden');
+}
+
+/* ── Render results v1 (legacy) ────────────────────────────── */
+
+function renderResultsV1(report) {
+  const s = report.summary;
+  if (!s) return;
+
+  showResultsPanel();
+  document.getElementById('results-card-label').textContent = 'Results summary';
+  document.getElementById('results-batch-status').textContent = '';
+  document.getElementById('results-batch-status').className = '';
+  document.getElementById('tests-section').classList.add('hidden');
+
+  const simMetrics1 = [
+    { label: 'Sim P1 Top-1', value: s.sim_phase1_top1_accuracy, sub: `${s.sim_phase1_top1_correct||0}/${s.total_evaluated} · mean ${(s.mean_sim_score_phase1||0).toFixed(3)}` },
+    { label: 'Sim P1 Top-3', value: s.sim_phase1_top3_accuracy, sub: `${s.sim_phase1_top3_correct||0}/${s.total_evaluated}` },
+    { label: 'Sim P2 Top-1', value: s.sim_phase2_top1_accuracy, sub: `${s.sim_phase2_top1_correct||0}/${s.total_evaluated} · mean ${(s.mean_sim_score_phase2||0).toFixed(3)}` },
+    { label: 'Sim P2 Top-3', value: s.sim_phase2_top3_accuracy, sub: `${s.sim_phase2_top3_correct||0}/${s.total_evaluated}` },
+  ];
+  const metrics = [
+    { label: 'Avg dur.',  value: null, raw: `${(s.avg_duration_seconds||0).toFixed(1)}s`,  sub: 'per case' },
+    { label: 'Avg Qs',    value: null, raw: `${(s.avg_followup_questions||0).toFixed(1)}`, sub: 'per case' },
+    { label: 'Cases',     value: null, raw: `${s.total_evaluated}`, sub: `${s.total_errors||0} errors` },
+    { label: 'API skip',  value: null, raw: `${s.total_api_unavailable||0}`, sub: 'unavailable' },
+  ];
+
+  document.getElementById('metrics-grid').innerHTML = simMetrics1.map(m => {
+    const cls = m.value != null ? accClass(m.value) : '';
+    return `<div class="metric-block sim">
+      <div class="metric-label">${esc(m.label)}</div>
+      <div class="metric-value ${cls}">${m.value != null ? pct(m.value) : '—'}</div>
+      <div class="metric-sub">${esc(m.sub||'')}</div>
+    </div>`;
+  }).join('') + metrics.map(m => {
+    const display = m.value != null ? pct(m.value) : (m.raw ?? '—');
+    const cls = m.value != null ? accClass(m.value) : '';
+    return `<div class="metric-block">
+      <div class="metric-label">${esc(m.label)}</div>
+      <div class="metric-value ${cls}">${esc(display)}</div>
+      <div class="metric-sub">${esc(m.sub||'')}</div>
+    </div>`;
+  }).join('');
+
+  const pp = s.per_prognosis;
+  if (pp && Object.keys(pp).length > 0) {
+    document.getElementById('prognosis-table-body').innerHTML = Object.entries(pp)
+      .sort((a, b) => b[1].sim_phase2_top1_acc - a[1].sim_phase2_top1_acc)
+      .map(([prog, v]) => {
+        function simCell(val) {
+          if (val == null) return `<span style="color:var(--text-dim)">—</span>`;
+          return `<span class="acc-pill acc-sim">${pct(val)}</span>`;
+        }
+        function simScoreCell(val) {
+          if (val == null) return `<span style="color:var(--text-dim)">—</span>`;
+          return `<span style="font-family:var(--mono);font-size:0.72rem;color:var(--sim)">${(val).toFixed(3)}</span>`;
+        }
+        return `<tr>
+          <td>${esc(prog)}</td><td>${v.count}</td>
+          <td>${simCell(v.sim_phase1_top1_acc)}</td>
+          <td>${simCell(v.sim_phase1_top3_acc)}</td>
+          <td>${simCell(v.sim_phase2_top1_acc)}</td>
+          <td>${simCell(v.sim_phase2_top3_acc)}</td>
+          <td>${simScoreCell(v.mean_sim_score_phase1)}</td>
+          <td>${simScoreCell(v.mean_sim_score_phase2)}</td>
+        </tr>`;
+      }).join('');
+    document.getElementById('prognosis-section').classList.remove('hidden');
+  } else {
+    document.getElementById('prognosis-section').classList.add('hidden');
+  }
+}
+
+/* ── Dispatch renderer ─────────────────────────────────────── */
+
+function renderResults(report) {
+  if (report && report.format === 'batch_v2') renderResultsV2(report);
+  else renderResultsV1(report);
+}
+
+/* ── History ───────────────────────────────────────────────── */
+
+let selectedRunKey = null;
+
+async function loadHistory() {
+  try {
+    const res = await fetch(`${API}/api/eval/history`);
+    const data = await res.json();
+    renderHistory(data.batches || []);
+  } catch (_) {
+    document.getElementById('history-list').innerHTML = '<p class="history-empty">Could not load history.</p>';
+  }
+}
+
+function toggleBatch(batchId) {
+  const runsEl  = document.getElementById(`batch-runs-${CSS.escape(batchId)}`);
+  const chevron = document.getElementById(`batch-chevron-${CSS.escape(batchId)}`);
+  if (!runsEl) return;
+  const isOpen = runsEl.classList.contains('open');
+  runsEl.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+function renderHistory(batches) {
+  const list    = document.getElementById('history-list');
+  const countEl = document.getElementById('history-count');
+  if (batches.length === 0) {
+    list.innerHTML = '<p class="history-empty">No previous runs found.</p>';
+    countEl.textContent = '';
+    return;
+  }
+  countEl.textContent = `${batches.length}`;
+  list.innerHTML = batches.map((batch, bi) => {
+    const expanded = bi === 0;
+    return batch.format === 'batch_v2' ? renderBatchV2(batch, expanded) : renderBatchV1(batch, expanded);
+  }).join('');
+}
+
+function renderBatchV2(batch, expanded) {
+  const bts = batch.timestamp ? formatTimestamp(batch.timestamp) : '—';
+  const statusStyle = batch.status === 'complete' ? `color:var(--green)` : batch.status === 'partial' ? `color:var(--yellow)` : `color:var(--red)`;
+  const statusIcon  = { complete: '✓', partial: '⚠', in_progress: '◌' }[batch.status] || '?';
+
+  const testsHtml = (batch.tests || []).map(t => {
+    const key      = `${batch.batch_id}::batch.json::${t.test_id}`;
+    const prog     = t.prognosis_filter || 'all prognoses';
+    const variant  = t.variant_filter ? `${t.variant_filter}%` : 'all';
+    const isFailed = t.status === 'failed', isPartial = t.status === 'partial';
+    const isOk     = t.status === 'ok';
+    const isRetryable = isFailed || isPartial;
+    const sBadgeCls = {ok:'badge-ok',partial:'badge-failed',failed:'badge-failed',running:'badge-running',pending:'badge-pending'}[t.status] || 'badge-pending';
+    const sLbl = {ok:'✓',partial:'⚠',failed:'✗',running:'◌',pending:'⋯'}[t.status] || '?';
+    const retryBtn = isRetryable ? `<button class="btn-retry-small" onclick="event.stopPropagation();retryTest('${esc(batch.batch_id)}','${esc(t.test_id)}')">↺</button>` : '';
+    const selected = key === selectedRunKey ? ' selected' : '';
+    const keyAttr  = key.replace(/'/g, "\\'");
+    return `<div class="batch-test-row${selected}" onclick="loadHistoryItem('${keyAttr}')" id="hist-${CSS.escape(key)}">
+      <div class="batch-test-row-left">
+        <div class="batch-test-row-title">
+          <span class="badge ${sBadgeCls}" style="font-size:.55rem">${sLbl}</span>
+          <span>${esc(prog)}</span>
+          <span style="color:var(--text-dim)">·</span>
+          <span>${esc(variant)}</span>
+        </div>
+        <div class="batch-test-row-meta">${esc(t.test_id)} · ${t.total_cases||0} cases</div>
+      </div>
+      <div class="batch-test-row-right">
+        ${isOk && t.sim_phase2_top1_accuracy != null ? `<span class="acc-pill acc-sim" title="Similarity P2 Top-1">∿ ${pct(t.sim_phase2_top1_accuracy)}</span>` : ''}
+        ${retryBtn}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="batch-group">
+    <div class="batch-header" onclick="toggleBatch('${esc(batch.batch_id)}')">
+      <div class="batch-header-left">
+        <span class="batch-chevron${expanded ? ' open' : ''}" id="batch-chevron-${esc(batch.batch_id)}">▶</span>
+        <span class="batch-id">${esc(batch.batch_id)}</span>
+        <span class="batch-ts">${bts}</span>
+      </div>
+      <div class="batch-header-badges">
+        <span style="font-size:.6rem;font-family:var(--mono);${statusStyle}">${statusIcon}</span>
+        ${batch.sim_phase2_top1_accuracy != null ? `<span class="acc-pill acc-sim" style="font-size:.58rem" title="Sim P2 Top-1">∿ ${pct(batch.sim_phase2_top1_accuracy)}</span>` : ''}
+        <span class="batch-run-count">${batch.total_tests||0}t</span>
+      </div>
+    </div>
+    <div class="batch-runs${expanded ? ' open' : ''}" id="batch-runs-${esc(batch.batch_id)}">${testsHtml}</div>
+  </div>`;
+}
+
+function renderBatchV1(batch, expanded) {
+  const bts = batch.timestamp ? formatTimestamp(batch.timestamp) : '—';
+  const runsHtml = (batch.runs || []).map(r => {
+    const key = `${batch.batch_id}::${r.filename}`;
+    const prog    = r.prognosis_filter ? `"${esc(r.prognosis_filter)}"` : 'all';
+    const variant = r.variant_filter ? `${r.variant_filter}%` : 'all';
+    const p2acc   = r.sim_phase2_top1_accuracy;
+    const accDisplay = p2acc != null ? (p2acc * 100).toFixed(1) + '%' : '—';
+    const selected = key === selectedRunKey ? ' selected' : '';
+    const unavail  = r.api_unavailable || 0;
+    const retryBtn = unavail > 0 && !r.retry_mode
+      ? `<button class="btn-retry-small" onclick="event.stopPropagation();retryFailedV1('${esc(batch.batch_id)}','${esc(r.filename)}')">↺ ${unavail}</button>` : '';
+    const keyAttr = key.replace(/'/g, "\\'");
+    return `<div class="history-item${selected}" onclick="loadHistoryItem('${keyAttr}')" id="hist-${CSS.escape(key)}">
+      <div class="history-item-left">
+        <div class="history-item-title">${prog} · ${esc(variant)}</div>
+        <div class="history-item-meta"><span>${esc(r.filename)}</span></div>
+      </div>
+      <div class="history-item-right">
+        <span class="history-acc acc-pill ${accPillClass(p2acc)}">Sim P2 ${esc(accDisplay)}</span>
+        ${retryBtn || `<span class="history-cases">${r.total_evaluated} cases</span>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  return `<div class="batch-group">
+    <div class="batch-header" onclick="toggleBatch('${esc(batch.batch_id)}')">
+      <div class="batch-header-left">
+        <span class="batch-chevron${expanded ? ' open' : ''}" id="batch-chevron-${esc(batch.batch_id)}">▶</span>
+        <span class="batch-id">${esc(batch.batch_id)}</span>
+        <span class="batch-ts">${bts}</span>
+      </div>
+      <span class="batch-run-count">${(batch.runs||[]).length}r</span>
+    </div>
+    <div class="batch-runs${expanded ? ' open' : ''}" id="batch-runs-${esc(batch.batch_id)}">${runsHtml}</div>
+  </div>`;
+}
+
+/* ── Load history item ─────────────────────────────────────── */
+
+async function loadHistoryItem(key) {
+  if (selectedRunKey) {
+    const prev = document.getElementById(`hist-${CSS.escape(selectedRunKey)}`);
+    if (prev) prev.classList.remove('selected');
+  }
+  selectedRunKey = key;
+  const el = document.getElementById(`hist-${CSS.escape(key)}`);
+  if (el) el.classList.add('selected');
+
+  const parts = key.split('::');
+  const batchId  = parts[0];
+  const filename = parts[1];
+  currentBatchId = batchId;
+  currentBatchFilename = filename;
+
+  showResultsPanel();
+  document.getElementById('metrics-grid').innerHTML =
+    '<p style="color:var(--text-muted);font-size:0.78rem;grid-column:1/-1;font-family:var(--mono);">Loading…</p>';
+  document.getElementById('prognosis-section').classList.add('hidden');
+  document.getElementById('tests-section').classList.add('hidden');
+
+  try {
+    const res  = await fetch(`${API}/api/eval/batch/${encodeURIComponent(batchId)}/${encodeURIComponent(filename)}`);
+    const data = await res.json();
+    if (data.result) renderResults(data.result);
+    else document.getElementById('metrics-grid').innerHTML =
+      `<p style="color:var(--red);font-size:0.78rem;grid-column:1/-1;font-family:var(--mono);">${esc(data.error||'Result not available.')}</p>`;
+  } catch (err) {
+    document.getElementById('metrics-grid').innerHTML =
+      `<p style="color:var(--red);font-size:0.78rem;grid-column:1/-1;font-family:var(--mono);">Failed to load: ${esc(err.message)}</p>`;
+  }
+}
+
+/* ── Legacy v1 retry ───────────────────────────────────────── */
+
+async function retryFailedV1(batchId, filename) {
+  document.getElementById('results-card').classList.add('hidden');
+  document.getElementById('run-btn').disabled = true;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  try {
+    const res = await fetch(`${API}/api/eval/retry`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id: batchId, filename }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    currentRunId = data.run_id;
+    currentBatchId = data.batch_id;
+    currentBatchFilename = data.output_file;
+    listenForOutput(data.run_id);
+  } catch (err) {
+    document.getElementById('run-btn').disabled = false;
+    alert(`Error: ${err.message}`);
+  }
+}
+
+/* ── SSE stream ────────────────────────────────────────────── */
+
+function listenForOutput(runId) {
+  eventSource = new EventSource(`${API}/api/eval/stream/${runId}`);
+  eventSource.onmessage = async (event) => {
+    const data = JSON.parse(event.data);
+    if (data.done) {
+      eventSource.close();
+      eventSource = null;
+      document.getElementById('run-btn').disabled = false;
+      const rb = document.getElementById('run-batch-btn');
+      if (rb) rb.disabled = batchConfigs.length === 0;
+      if (data.error) alert(`Run finished with error: ${data.error}`);
+      try {
+        const rr = await fetch(`${API}/api/eval/result/${runId}`);
+        const rd = await rr.json();
+        if (rd.result) renderResults(rd.result);
+      } catch (_) {}
+      loadHistory();
+    }
+  };
+  eventSource.onerror = () => {};
+}
+
+/* ── Fix-status helper ─────────────────────────────────────── */
+
+async function fixTestStatus(batchId, testId) {
+  try {
+    const res = await fetch(`${API}/api/eval/fix-test-status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id: batchId, test_id: testId }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    if (data.changed) {
+      // Reload the batch view to reflect the corrected status
+      if (currentBatchId === batchId) {
+        const key = `${batchId}::batch.json`;
+        await loadHistoryItem(key);
+      }
+      loadHistory();
+    } else {
+      alert(`Status unchanged: ${data.reason}`);
+    }
+  } catch (err) {
+    alert(`Error: ${err.message}`);
+  }
+}
+
+/* ── Case-error helpers ────────────────────────────────────── */
+
+function toggleCaseErrors(testId) {
+  const list  = document.getElementById(`cel-${CSS.escape(testId)}`);
+  const chevEl = document.getElementById(`ce-chev-${CSS.escape(testId)}`);
+  if (!list) return;
+  const isOpen = list.classList.contains('open');
+  list.classList.toggle('open', !isOpen);
+  if (chevEl) chevEl.textContent = isOpen ? '▶' : '▼';
+}
+
+function updateCaseSelectBtn(testId) {
+  const checked = document.querySelectorAll(`.case-error-cb[data-test-id="${CSS.escape(testId)}"]:checked`);
+  const btn     = document.getElementById(`retry-sel-btn-${CSS.escape(testId)}`);
+  if (!btn) return;
+  const n = checked.length;
+  btn.disabled    = n === 0;
+  btn.textContent = `↺ Retry selected (${n})`;
+}
+
+function retrySelectedCases(batchId, testId) {
+  const checked = document.querySelectorAll(`.case-error-cb[data-test-id="${CSS.escape(testId)}"]:checked`);
+  const caseIds = Array.from(checked).map(cb => parseInt(cb.dataset.caseId, 10));
+  if (caseIds.length === 0) return;
+  retryCases(batchId, testId, caseIds);
+}
+
+async function retryCases(batchId, testId, caseIds) {
+  document.getElementById('results-card').classList.add('hidden');
+  document.getElementById('run-btn').disabled = true;
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  try {
+    const res = await fetch(`${API}/api/eval/retry-cases`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batch_id: batchId, test_id: testId, case_ids: caseIds }),
+    });
+    if (!res.ok) throw new Error(`Server error ${res.status}`);
+    const data = await res.json();
+    currentRunId   = data.run_id;
+    currentBatchId = batchId;
+    currentBatchFilename = 'batch.json';
+    listenForOutput(data.run_id);
+  } catch (err) {
+    document.getElementById('run-btn').disabled = false;
+    alert(`Error: ${err.message}`);
+  }
+}
+
+/* ── Case detail rendering ─────────────────────────────────── */
+
+function toggleCaseDetail(testId) {
+  const panel  = document.getElementById(`cd-panel-${CSS.escape(testId)}`);
+  const chev   = document.getElementById(`cd-chev-${CSS.escape(testId)}`);
+  const toggle = document.getElementById(`cd-toggle-${CSS.escape(testId)}`);
+  if (!panel) return;
+  const isOpen = panel.classList.contains('open');
+  panel.classList.toggle('open', !isOpen);
+  if (chev)   chev.classList.toggle('open', !isOpen);
+  if (toggle) toggle.style.color = isOpen ? '' : 'var(--accent)';
+}
+
+function toggleFuAnswers(caseKey) {
+  const el = document.getElementById(`fu-${CSS.escape(caseKey)}`);
+  if (!el) return;
+  el.classList.toggle('open');
+}
+
+function renderCaseCards(cases, testId) {
+  if (!cases || cases.length === 0) return '';
+
+  const cards = cases.map(c => {
+    const exp     = c.expected_prognosis || '?';
+    const p1      = c.phase1_top1 || '—';
+    const p2      = c.phase2_top1 || '—';
+    const p1t3    = c.phase1_top3 || [];
+    const p2t3    = c.phase2_top3 || [];
+    const s1       = c.sim_score_phase1_top1 ?? null;
+    const s2       = c.sim_score_phase2_top1 ?? null;
+    const s1t3     = c.sim_score_phase1_top3 ?? null;
+    const s2t3     = c.sim_score_phase2_top3 ?? null;
+    const okStr1   = c.top1_correct_phase1;
+    const okStr2   = c.top1_correct_phase2;
+    const okStr1t3 = c.top3_correct_phase1;
+    const okStr2t3 = c.top3_correct_phase2;
+    const okSim1   = c.sim_correct_phase1;
+    const okSim2   = c.sim_correct_phase2;
+    const okSim1t3 = c.sim_top3_correct_phase1;
+    const okSim2t3 = c.sim_top3_correct_phase2;
+    const tied1    = c.top1_tied_correct_phase1;
+    const tied2    = c.top1_tied_correct_phase2;
+    const fuCount = c.followup_questions_count || 0;
+    const dur     = c.duration_seconds || 0;
+    const answers = c.followup_auto_answers || {};
+    const fuKey   = `${testId}-${c.case_id}-${c.variant}`;
+
+    // Overall correctness for left border
+    const borderColor = (okStr2 || okSim2)
+      ? (okStr2 ? 'var(--green)' : 'var(--sim)')
+      : 'var(--red)';
+
+    // Top-3 tag builder
+    function top3Tags(list, expected) {
+      return list.map(d => {
+        const normD = d.toLowerCase();
+        const normE = expected.toLowerCase();
+        const isExact = normD === normE || normD.includes(normE) || normE.includes(normD);
+        // sim hit = contains the same word but not exact
+        const isPartial = !isExact && (normD.split(' ').some(w => normE.includes(w)) || normE.split(' ').some(w => normD.includes(w)));
+        const cls = isExact ? 'top3-tag hit' : isPartial ? 'top3-tag sim-hit' : 'top3-tag';
+        return `<span class="${cls}">${esc(d)}</span>`;
+      }).join('');
+    }
+
+    // Followup answer chips
+    const fuEntries = Object.entries(answers);
+    const fuChips = fuEntries.map(([sym, ans]) => {
+      const cls = ans === 'yes' ? 'fu-chip yes' : ans === 'no' ? 'fu-chip no' : 'fu-chip neutral';
+      return `<span class="${cls}" title="${esc(sym)}">${esc(sym)}: ${esc(ans)}</span>`;
+    }).join('');
+    const fuSection = fuEntries.length > 0 ? `
+      <div class="fu-toggle" onclick="toggleFuAnswers('${esc(fuKey)}')">
+        ▶ ${fuCount} follow-up answers
+      </div>
+      <div class="fu-answers" id="fu-${CSS.escape(fuKey)}">${fuChips}</div>` : '';
+
+    return `<div class="case-card" style="border-left:2px solid ${borderColor}">
+      <div class="case-card-header">
+        <span class="case-card-id">Case #${c.case_id}</span>
+        <span class="case-card-expected">${esc(exp)}</span>
+        <span class="case-card-meta">
+          <span>${esc(c.variant || '?')}%</span>
+          <span style="color:var(--border)">·</span>
+          <span>${dur.toFixed(0)}s</span>
+        </span>
+      </div>
+      <div class="case-card-body">
+
+        <!-- Phase 1 -->
+        <div class="phase-row">
+          <span class="phase-label">Phase 1</span>
+          <div class="phase-prediction">
+            <div class="phase-top1">
+              <span class="phase-top1-name">${esc(p1)}</span>
+              ${tied1 ? `<span style="font-family:var(--mono);font-size:.55rem;color:var(--yellow);border:1px solid rgba(255,179,0,.3);padding:.05rem .28rem;border-radius:2px;">≈tied</span>` : ''}
+            </div>
+            <div class="phase-top3">${top3Tags(p1t3, exp)}</div>
+          </div>
+          <div class="phase-scores">
+            <span class="str-badge ${okStr1 ? 'pass' : 'fail'}">${okStr1 ? '✓ str' : '✗ str'}</span>
+            ${s1 != null ? `<span class="sim-badge ${okSim1 ? '' : 'fail'}">∿ ${s1.toFixed(3)}</span>` : ''}
+          </div>
+        </div>
+
+        <!-- Phase 2 -->
+        <div class="phase-row">
+          <span class="phase-label">Phase 2</span>
+          <div class="phase-prediction">
+            <div class="phase-top1">
+              <span class="phase-top1-name">${esc(p2)}</span>
+              ${tied2 ? `<span style="font-family:var(--mono);font-size:.55rem;color:var(--yellow);border:1px solid rgba(255,179,0,.3);padding:.05rem .28rem;border-radius:2px;">≈tied</span>` : ''}
+            </div>
+            <div class="phase-top3">${top3Tags(p2t3, exp)}</div>
+          </div>
+          <div class="phase-scores">
+            <span class="str-badge ${okStr2 ? 'pass' : 'fail'}">${okStr2 ? '✓ str' : '✗ str'}</span>
+            ${s2 != null ? `<span class="sim-badge ${okSim2 ? '' : 'fail'}">∿ ${s2.toFixed(3)}</span>` : ''}
+          </div>
+        </div>
+
+        <!-- Full similarity metrics panel -->
+        ${(s1 != null || s2 != null) ? `
+        <div class="sim-metrics-panel">
+          <div class="sim-metrics-title">Similarity metrics (cosine · threshold 0.60)</div>
+          <div class="sim-metrics-grid">
+
+            <!-- header row -->
+            <div class="sim-col-header"></div>
+            <div class="sim-col-header">Phase 1</div>
+            <div class="sim-col-header">Phase 2</div>
+
+            <!-- Top-1 score -->
+            <div class="sim-row-label">Top-1 score</div>
+            <div class="sim-cell">
+              ${s1 != null ? `
+                <div class="sim-match-dot ${okSim1 ? 'pass' : 'fail'}"></div>
+                <span class="sim-score-val ${okSim1 ? '' : 'fail'}">${s1.toFixed(4)}</span>
+                <span style="font-family:var(--mono);font-size:.58rem;color:${okSim1 ? 'var(--green)' : 'var(--red)'}">
+                  ${okSim1 ? '✓ match' : '✗ miss'}
+                </span>` : '<span style="color:var(--text-dim)">—</span>'}
+            </div>
+            <div class="sim-cell">
+              ${s2 != null ? `
+                <div class="sim-match-dot ${okSim2 ? 'pass' : 'fail'}"></div>
+                <span class="sim-score-val ${okSim2 ? '' : 'fail'}">${s2.toFixed(4)}</span>
+                <span style="font-family:var(--mono);font-size:.58rem;color:${okSim2 ? 'var(--green)' : 'var(--red)'}">
+                  ${okSim2 ? '✓ match' : '✗ miss'}
+                </span>` : '<span style="color:var(--text-dim)">—</span>'}
+            </div>
+
+            <!-- Top-3 max score -->
+            <div class="sim-row-label">Top-3 max</div>
+            <div class="sim-cell">
+              ${s1t3 != null ? `
+                <div class="sim-match-dot ${okSim1t3 ? 'pass' : 'fail'}"></div>
+                <span class="sim-score-val ${okSim1t3 ? '' : 'fail'}">${s1t3.toFixed(4)}</span>
+                <span style="font-family:var(--mono);font-size:.58rem;color:${okSim1t3 ? 'var(--green)' : 'var(--red)'}">
+                  ${okSim1t3 ? '✓ match' : '✗ miss'}
+                </span>` : '<span style="color:var(--text-dim)">—</span>'}
+            </div>
+            <div class="sim-cell">
+              ${s2t3 != null ? `
+                <div class="sim-match-dot ${okSim2t3 ? 'pass' : 'fail'}"></div>
+                <span class="sim-score-val ${okSim2t3 ? '' : 'fail'}">${s2t3.toFixed(4)}</span>
+                <span style="font-family:var(--mono);font-size:.58rem;color:${okSim2t3 ? 'var(--green)' : 'var(--red)'}">
+                  ${okSim2t3 ? '✓ match' : '✗ miss'}
+                </span>` : '<span style="color:var(--text-dim)">—</span>'}
+            </div>
+
+            <!-- String match row for comparison -->
+            <div class="sim-row-label">String Top-1</div>
+            <div class="sim-cell">
+              <div class="sim-match-dot ${okStr1 ? 'pass' : (tied1 ? 'amber' : 'fail')}"></div>
+              <span style="font-family:var(--mono);font-size:.62rem;color:${okStr1 ? 'var(--green)' : (tied1 ? 'var(--yellow)' : 'var(--red)')}">${okStr1 ? '✓ exact' : (tied1 ? '≈ tied' : '✗ miss')}</span>
+            </div>
+            <div class="sim-cell">
+              <div class="sim-match-dot ${okStr2 ? 'pass' : (tied2 ? 'amber' : 'fail')}"></div>
+              <span style="font-family:var(--mono);font-size:.62rem;color:${okStr2 ? 'var(--green)' : (tied2 ? 'var(--yellow)' : 'var(--red)')}">${okStr2 ? '✓ exact' : (tied2 ? '≈ tied' : '✗ miss')}</span>
+            </div>
+
+            <!-- String top-3 row -->
+            <div class="sim-row-label">String Top-3</div>
+            <div class="sim-cell">
+              <div class="sim-match-dot ${okStr1t3 ? 'pass' : 'fail'}"></div>
+              <span style="font-family:var(--mono);font-size:.62rem;color:${okStr1t3 ? 'var(--green)' : 'var(--red)'}">${okStr1t3 ? '✓ in top-3' : '✗ miss'}</span>
+            </div>
+            <div class="sim-cell">
+              <div class="sim-match-dot ${okStr2t3 ? 'pass' : 'fail'}"></div>
+              <span style="font-family:var(--mono);font-size:.62rem;color:${okStr2t3 ? 'var(--green)' : 'var(--red)'}">${okStr2t3 ? '✓ in top-3' : '✗ miss'}</span>
+            </div>
+
+            <div class="sim-threshold-note">Scores ≥ 0.60 counted as match · model: all-MiniLM-L6-v2</div>
+          </div>
+        </div>` : ''}
+
+        ${fuSection}
+      </div>
+    </div>`;
+  }).join('');
+
+  return cards;
+}
+
+/* ── Init ──────────────────────────────────────────────────── */
+loadHistory();
+loadDiseases();
+renderBatchConfigs();
+</script>
+</body>
+</html>

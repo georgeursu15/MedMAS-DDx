@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>New Consultation - MedMAS-DDx</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "surface-container-highest": "#d8e3fb",
+                    "surface-container-low": "#f0f3ff",
+                    "primary-fixed": "#dde1ff",
+                    "on-error-container": "#93000a",
+                    "inverse-primary": "#b7c4ff",
+                    "surface-tint": "#194ee3",
+                    "on-secondary-fixed": "#141b2c",
+                    "outline": "#747687",
+                    "secondary-fixed-dim": "#bfc6dd",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#dbe2fa",
+                    "inverse-surface": "#263143",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#111c2d",
+                    "tertiary-container": "#616a6f",
+                    "on-tertiary-fixed-variant": "#3f484d",
+                    "surface-bright": "#f9f9ff",
+                    "primary": "#0040cd",
+                    "outline-variant": "#c4c5d8",
+                    "secondary": "#575e72",
+                    "background": "#f9f9ff",
+                    "on-primary": "#ffffff",
+                    "on-tertiary-fixed": "#141d21",
+                    "on-background": "#111c2d",
+                    "surface-container": "#e7eeff",
+                    "inverse-on-surface": "#ecf1ff",
+                    "on-primary-fixed-variant": "#0038b7",
+                    "on-surface-variant": "#434655",
+                    "on-error": "#ffffff",
+                    "error-container": "#ffdad6",
+                    "on-secondary": "#ffffff",
+                    "surface": "#f9f9ff",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed-dim": "#bfc8ce",
+                    "primary-fixed-dim": "#b7c4ff",
+                    "on-secondary-fixed-variant": "#3f4759",
+                    "surface-container-high": "#dee8ff",
+                    "on-secondary-container": "#5d6478",
+                    "surface-dim": "#cfdaf2",
+                    "on-primary-container": "#e5e7ff",
+                    "on-tertiary-container": "#e1eaf0",
+                    "tertiary": "#495257",
+                    "tertiary-fixed": "#dbe4ea",
+                    "secondary-container": "#dbe2fa",
+                    "primary-container": "#2b5aed",
+                    "on-primary-fixed": "#001452",
+                    "surface-variant": "#d8e3fb"
+                },
+                borderRadius: {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+                },
+                spacing: {
+                    "base": "8px",
+                    "sm": "8px",
+                    "margin-desktop": "48px",
+                    "md": "16px",
+                    "margin-mobile": "16px",
+                    "xs": "4px",
+                    "xl": "32px",
+                    "gutter": "24px",
+                    "lg": "24px"
+                },
+                fontFamily: {
+                    "headline-md": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-xl": ["Inter"],
+                    "headline-lg-mobile": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "label-md": ["Inter"]
+                },
+                fontSize: {
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "label-sm": ["12px", {"lineHeight": "14px", "fontWeight": "500"}],
+                    "label-md": ["14px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                },
+                keyframes: {
+                    fadeUp: {
+                        "0%":   { opacity: "0", transform: "translateY(10px)" },
+                        "100%": { opacity: "1", transform: "translateY(0)" }
+                    },
+                    sweep: {
+                        "0%":   { transform: "translateX(-250%)" },
+                        "100%": { transform: "translateX(700%)" }
+                    }
+                },
+                animation: {
+                    "fade-up": "fadeUp 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both",
+                    "sweep": "sweep 2.1s ease-in-out infinite"
+                }
+            },
+        },
+    }
+</script>
+<style>
+    .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    }
+    .material-symbols-outlined[data-weight="fill"] {
+        font-variation-settings: 'FILL' 1;
+    }
+</style>
+</head>
+<body class="bg-background min-h-screen font-body-md text-on-background flex flex-col">
+
+<header class="hidden md:flex bg-surface border-b border-outline-variant justify-between items-center w-full px-margin-desktop h-16 shrink-0">
+  <div class="flex items-center gap-md">
+    <span class="font-headline-md text-headline-md font-bold text-primary">MedMAS-DDx</span>
+    <span class="font-body-sm text-body-sm text-on-surface-variant">Diagnostic Assistant</span>
+  </div>
+  <div class="flex items-center gap-sm">
+    <div id="global-status-dot" class="w-2 h-2 rounded-full bg-outline-variant transition-colors"></div>
+    <span id="global-status-label" class="font-label-sm text-label-sm text-on-surface-variant">idle</span>
+  </div>
+</header>
+
+<header class="md:hidden flex justify-between items-center w-full px-margin-mobile h-16 border-b border-outline-variant shrink-0 bg-surface">
+  <span class="font-headline-md text-headline-md font-bold text-primary">MedMAS-DDx</span>
+</header>
+
+<main class="flex-grow flex flex-col items-center p-margin-mobile md:p-margin-desktop">
+  <div class="w-full max-w-6xl flex flex-col gap-lg">
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg items-start">
+
+      <div id="intake-section" class="bg-surface-container-lowest border border-outline-variant rounded-xl p-lg md:p-xl shadow-sm flex flex-col gap-md">
+        <div class="flex flex-col gap-xs">
+          <h1 class="font-headline-md text-headline-md text-on-background">New Consultation</h1>
+          <p class="font-body-md text-body-md text-on-surface-variant">Describe the patient's symptoms to begin.</p>
+        </div>
+        <div class="w-full flex flex-col gap-xs">
+          <label class="font-label-md text-label-md text-on-surface" for="symptom-input">Patient Symptoms</label>
+          <textarea id="symptom-input" rows="10"
+            placeholder="e.g. Persistent dry cough for two weeks, chest tightness, shortness of breath when climbing stairs…"
+            class="w-full border border-outline-variant rounded-lg p-md font-body-md text-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none resize-y min-h-[280px] transition-all bg-surface-container-lowest"></textarea>
+          <div class="flex items-center justify-between gap-sm flex-wrap">
+            <span id="intake-meta" class="hidden font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wide"></span>
+            <div class="flex gap-sm ml-auto">
+              <button id="abort-btn" onclick="abortConsultation()" class="hidden inline-flex items-center gap-xs font-label-md text-label-md uppercase px-md py-sm rounded-full border border-error/40 text-error hover:bg-error-container transition-colors">
+                <span class="material-symbols-outlined text-[18px]">cancel</span> Abort
+              </button>
+              <button id="new-btn" onclick="newConsultation()" class="hidden inline-flex items-center gap-xs font-label-sm text-label-sm uppercase px-sm py-xs rounded-full border border-outline-variant text-on-surface-variant hover:border-primary hover:text-primary transition-colors">
+                <span class="material-symbols-outlined text-[16px]">add</span> New
+              </button>
+              <button id="start-btn" onclick="startDiagnosis()" class="bg-primary text-on-primary font-label-sm text-label-sm uppercase py-xs px-md rounded-lg hover:bg-primary-container hover:text-on-primary-container transition-colors shadow-sm active:opacity-80 flex items-center justify-center gap-xs disabled:opacity-40 disabled:cursor-not-allowed">
+                <span class="material-symbols-outlined text-[16px]">analytics</span> Run analysis
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="extracted-symptoms-section" class="hidden bg-surface-container-lowest border border-outline-variant rounded-xl p-lg md:p-xl shadow-sm flex flex-col gap-md">
+        <div class="flex items-center gap-sm">
+          <span class="font-label-sm text-label-sm uppercase tracking-wide bg-primary-fixed text-on-primary-fixed-variant border border-outline-variant px-sm py-1 rounded-full">Phase 1a</span>
+          <span class="font-headline-sm text-headline-sm text-on-background">Extracted symptoms</span>
+        </div>
+        <div class="border border-outline-variant rounded-lg overflow-hidden animate-fade-up">
+          <div id="extracted-symptoms-list"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="processing-section" class="hidden animate-fade-up">
+      <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm">
+        <div class="flex items-center gap-sm px-md py-3 border-b border-outline-variant bg-surface-container-low">
+          <span class="font-label-sm text-label-sm uppercase tracking-wide text-primary">Phase 1</span>
+          <span class="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">Analysing symptoms</span>
+        </div>
+        <div class="p-md">
+          <div class="h-[3px] bg-outline-variant rounded-full overflow-hidden mb-3">
+            <div class="h-full w-[30%] bg-gradient-to-r from-transparent via-primary to-transparent animate-sweep"></div>
+          </div>
+          <div id="status-text" class="font-body-md text-body-md text-on-surface-variant">Extracting symptoms and querying the medical ontology</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Investigations -->
+    <div id="investigations-section" class="hidden animate-fade-up">
+      <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm">
+        <div class="flex items-center gap-sm px-md py-3 border-b border-outline-variant bg-surface-container-low">
+          <span class="font-label-sm text-label-sm uppercase tracking-wide text-primary">Investigations</span>
+          <span class="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">Clinical measurement required</span>
+        </div>
+        <div id="investigations-list"></div>
+      </div>
+    </div>
+
+    <!-- Step 6: Follow-up question -->
+    <div id="question-section" class="hidden">
+      <div class="flex items-center gap-sm mb-2">
+        <span class="font-label-sm text-label-sm uppercase tracking-wide bg-primary-fixed text-on-primary-fixed-variant border border-outline-variant px-sm py-1 rounded-full">Follow-up</span>
+        <span class="font-headline-sm text-headline-sm text-on-background">Clarification needed</span>
+      </div>
+      <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm animate-fade-up">
+        <div class="p-md flex flex-col gap-md">
+          <div class="font-label-sm text-label-sm uppercase tracking-widest text-secondary" id="question-counter"></div>
+          <div class="font-headline-sm text-headline-sm text-on-background leading-snug" id="question-text"></div>
+          <div class="quick-answers flex gap-sm">
+            <button class="btn-pill bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase px-lg py-sm rounded-full hover:border-primary hover:text-primary transition-colors" onclick="quickAnswer('yes')">Yes</button>
+            <button class="btn-pill bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase px-lg py-sm rounded-full hover:border-primary hover:text-primary transition-colors" onclick="quickAnswer('no')">No</button>
+            <button class="btn-pill bg-surface-container-lowest border border-outline-variant text-on-surface-variant font-label-sm text-label-sm uppercase px-lg py-sm rounded-full hover:border-primary hover:text-primary transition-colors" onclick="quickAnswer('unsure')">Unsure</button>
+          </div>
+          <div class="flex gap-sm">
+            <input type="text" id="answer-input" placeholder="Or type a custom answer…"
+                   onkeydown="if(event.key==='Enter')submitAnswer()"
+                   class="flex-1 bg-surface-container-lowest border border-outline-variant rounded-lg px-md py-sm font-body-md text-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all">
+            <button class="inline-flex items-center gap-xs bg-primary text-on-primary font-label-sm text-label-sm uppercase px-lg py-sm rounded-full hover:bg-primary-container transition-colors" onclick="submitAnswer()">
+              <span class="material-symbols-outlined text-[18px]">send</span> Send
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Answered log -->
+    <div id="answered-section" class="hidden">
+      <div class="flex items-center gap-sm mb-2 mt-2">
+        <span class="font-label-sm text-label-sm uppercase tracking-wide bg-primary-fixed text-on-primary-fixed-variant border border-outline-variant px-sm py-1 rounded-full">Log</span>
+        <span class="font-headline-sm text-headline-sm text-on-background">Recorded answers</span>
+      </div>
+      <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm">
+        <div id="answered-list"></div>
+      </div>
+    </div>
+
+    <!-- Step 7: Refining -->
+    <div id="refining-section" class="hidden animate-fade-up">
+      <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm">
+        <div class="flex items-center gap-sm px-md py-3 border-b border-outline-variant bg-surface-container-low">
+          <span class="font-label-sm text-label-sm uppercase tracking-wide text-primary">Phase 2</span>
+          <span class="font-label-sm text-label-sm uppercase tracking-wide text-on-surface-variant">Refining diagnosis</span>
+        </div>
+        <div class="p-md">
+          <div class="h-[3px] bg-outline-variant rounded-full overflow-hidden mb-3">
+            <div class="h-full w-[30%] bg-gradient-to-r from-transparent via-primary to-transparent animate-sweep"></div>
+          </div>
+          <div class="font-body-md text-body-md text-on-surface-variant">Applying answers to re-rank disease candidates</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overall reasoning summary (full width, shown once the final ranking is ready) -->
+    <div id="summary-card" class="hidden animate-fade-up">
+      <div class="flex items-center gap-sm mb-2">
+        <span class="font-label-sm text-label-sm uppercase tracking-wide bg-primary-fixed text-on-primary-fixed-variant border border-outline-variant px-sm py-1 rounded-full">Summary</span>
+        <span class="font-headline-sm text-headline-sm text-on-background">Overall reasoning</span>
+      </div>
+      <div class="border border-outline-variant border-l-4 border-l-primary rounded-lg bg-surface-container-low p-lg shadow-sm">
+        <p class="font-body-lg text-body-lg text-on-surface leading-relaxed" id="result-summary"></p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-lg items-start">
+
+      <div id="initial-ranking-section" class="hidden">
+        <div class="flex items-center gap-sm mb-2">
+          <span class="font-label-sm text-label-sm uppercase tracking-wide bg-primary-fixed text-on-primary-fixed-variant border border-outline-variant px-sm py-1 rounded-full">Phase 1</span>
+          <span class="font-headline-sm text-headline-sm text-on-background">Ranking before questions</span>
+          <button class="ml-auto border border-outline-variant rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase px-md py-1 hover:border-primary hover:bg-surface-container transition-colors" id="initial-ranking-toggle"
+                  onclick="toggleRanking('initial-ranking-panel', 'initial-ranking-toggle')">
+            Collapse
+          </button>
+        </div>
+        <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm animate-fade-up" id="initial-ranking-panel">
+          <div id="initial-ranking-list"></div>
+        </div>
+      </div>
+
+      <div id="result-section" class="hidden">
+        <div class="flex items-center gap-sm mb-2">
+          <span class="font-label-sm text-label-sm uppercase tracking-wide bg-primary-fixed text-on-primary-fixed-variant border border-outline-variant px-sm py-1 rounded-full">Phase 2</span>
+          <span class="font-headline-sm text-headline-sm text-on-background">Ranking after questions</span>
+          <button class="ml-auto border border-outline-variant rounded-full bg-surface-container-low text-on-surface-variant font-label-sm text-label-sm uppercase px-md py-1 hover:border-primary hover:bg-surface-container transition-colors" id="result-ranking-toggle"
+                  onclick="toggleRanking('result-ranking-panel', 'result-ranking-toggle')">
+            Collapse
+          </button>
+        </div>
+        <div class="border border-outline-variant rounded-lg bg-surface-container-lowest overflow-hidden shadow-sm animate-fade-up" id="result-ranking-panel">
+          <div id="result-list"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <p class="font-body-sm text-body-sm text-on-surface-variant text-center pt-lg mt-lg border-t border-outline-variant max-w-md mx-auto leading-relaxed">
+      For educational and research purposes only — not a substitute for professional medical advice or clinical diagnosis.
+    </p>
+
+  </div>
+</main>
+
+<script>
+const API = window.location.origin;
+let sessionId = null;
+let eventSource = null;
+let currentQuestion = null;
+let answeredQuestions = [];
+let consultationActive = false;
+
+function show(id)  { document.getElementById(id).classList.remove('hidden'); }
+function hide(id)  { document.getElementById(id).classList.add('hidden'); }
+
+function setIntakeMeta(text = '') {
+  const el = document.getElementById('intake-meta');
+  if (!text) { el.textContent = ''; hide('intake-meta'); return; }
+  el.textContent = text;
+  show('intake-meta');
+}
+
+function setStatus(label, live = false) {
+  const dot = document.getElementById('global-status-dot');
+  const lbl = document.getElementById('global-status-label');
+  if (dot) {
+    dot.classList.toggle('bg-primary', live);
+    dot.classList.toggle('bg-outline-variant', !live);
+    dot.classList.toggle('ring-4', live);
+    dot.classList.toggle('ring-primary/20', live);
+  }
+  if (lbl) lbl.textContent = label;
+}
+
+function setConsultationState(active) {
+  consultationActive = active;
+  document.getElementById('symptom-input').readOnly = active;
+  document.getElementById('start-btn').disabled = active;
+  setStatus(active ? 'running' : 'idle', active);
+  if (active) { show('abort-btn'); show('new-btn'); }
+  else        { hide('abort-btn'); show('new-btn'); }
+}
+
+function resetUiForNewConsultation() {
+  ['processing-section','investigations-section','question-section',
+   'extracted-symptoms-section','initial-ranking-section','answered-section','refining-section',
+   'result-section'].forEach(hide);
+  document.getElementById('investigations-list').innerHTML = '';
+  document.getElementById('extracted-symptoms-list').innerHTML = '';
+  document.getElementById('initial-ranking-list').innerHTML = '';
+  document.getElementById('answered-list').innerHTML = '';
+  document.getElementById('result-list').innerHTML = '';
+  document.getElementById('result-summary').textContent = '';
+  document.getElementById('summary-card').classList.add('hidden');
+  setRankingCollapsed('initial-ranking-panel', 'initial-ranking-toggle', false);
+  setRankingCollapsed('result-ranking-panel', 'result-ranking-toggle', false);
+  answeredQuestions = [];
+  currentQuestion = null;
+  sessionId = null;
+  document.getElementById('symptom-input').value = '';
+  setIntakeMeta('');
+  setConsultationState(false);
+}
+
+/* ── Start diagnosis ──────────────────────────────────────── */
+
+async function startDiagnosis() {
+  const msg = document.getElementById('symptom-input').value.trim();
+  if (!msg) return;
+  setConsultationState(true);
+  setIntakeMeta('consultation in progress');
+  show('processing-section');
+  try {
+    const res = await fetch(`${API}/api/diagnose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_message: msg }),
+    });
+    const data = await res.json();
+    sessionId = data.session_id;
+    listenForQuestions();
+  } catch (err) {
+    document.getElementById('status-text').textContent = 'Connection error — is the server running?';
+    setIntakeMeta('connection error');
+    setConsultationState(false);
+  }
+}
+
+async function abortConsultation() {
+  if (!sessionId) return;
+  try { await fetch(`${API}/api/abort/${sessionId}`, { method: 'POST' }); } catch (_) {}
+  if (eventSource) { eventSource.close(); eventSource = null; }
+  ['processing-section','question-section','refining-section','initial-ranking-section'].forEach(hide);
+  setIntakeMeta('aborted');
+  setConsultationState(false);
+}
+
+function newConsultation() {
+  if (consultationActive) { abortConsultation().finally(() => resetUiForNewConsultation()); return; }
+  resetUiForNewConsultation();
+}
+
+/* ── SSE listener ─────────────────────────────────────────── */
+
+function listenForQuestions() {
+  eventSource = new EventSource(`${API}/api/questions/${sessionId}`);
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+    if (data.error) {
+      eventSource.close();
+      hide('initial-ranking-section');
+      hide('extracted-symptoms-section');
+      setIntakeMeta(`error: ${data.error}`);
+      setConsultationState(false);
+      return;
+    }
+    if (data.aborted) {
+      eventSource.close();
+      ['processing-section','question-section','refining-section','initial-ranking-section','extracted-symptoms-section'].forEach(hide);
+      setIntakeMeta('aborted');
+      setConsultationState(false);
+      return;
+    }
+    if (data.done) { eventSource.close(); showResult(data.result); return; }
+    if (data.extracted_symptoms) {
+      renderSymptoms(data.extracted_symptoms, 'extracted-symptoms-list');
+      show('extracted-symptoms-section');
+      hide('processing-section');
+      return;
+    }
+    if (data.initial_ranking) {
+      renderRanking(data.initial_ranking, 'initial-ranking-list');
+      show('initial-ranking-section');
+      setRankingCollapsed('initial-ranking-panel', 'initial-ranking-toggle', false);
+      hide('processing-section');
+      return;
+    }
+    if (data.investigations && data.investigations.length > 0) renderInvestigations(data.investigations);
+    hide('processing-section');
+    showQuestion(data);
+  };
+  eventSource.onerror = () => {};
+}
+
+/* ── Badge class helpers ─────────────────────────────────── */
+
+function confBadgeClasses(level) {
+  if (level === 'HIGH') return 'bg-green-50 text-green-700 border border-green-200';
+  if (level === 'MEDIUM') return 'bg-amber-50 text-amber-700 border border-amber-200';
+  return 'bg-surface-container-low text-on-surface-variant border border-outline-variant';
+}
+
+function answerBadgeClasses(norm) {
+  if (norm === 'yes') return 'bg-green-50 text-green-700 border border-green-200';
+  if (norm === 'no') return 'bg-error-container text-error border border-error/30';
+  return 'bg-surface-container-low text-on-surface-variant border border-outline-variant';
+}
+
+/* ── Render investigations ───────────────────────────────── */
+
+function renderInvestigations(investigations) {
+  document.getElementById('investigations-list').innerHTML = investigations.map(inv => `
+    <div class="px-md py-3 border-b border-dashed border-outline-variant last:border-b-0">
+      <div class="flex items-baseline gap-sm font-body-md text-body-md font-semibold text-on-surface">
+        <span class="text-secondary text-xs">◆</span>${esc(inv.finding || 'Unknown')}
+      </div>
+      <div class="font-body-sm text-body-sm text-on-surface-variant mt-1 pl-lg leading-relaxed">${esc(inv.reason || '')}</div>
+    </div>`).join('');
+  show('investigations-section');
+}
+
+function renderSymptoms(items, targetId) {
+  const c = document.getElementById(targetId);
+  if (!c) return;
+  const symptoms = Array.isArray(items) ? items : [];
+  if (symptoms.length === 0) {
+    c.innerHTML = `<div class="p-md font-body-sm text-body-sm text-on-surface-variant">
+      No symptoms were extracted from the text.</div>`;
+    return;
+  }
+  c.innerHTML = symptoms.map(item => {
+    const name = typeof item === 'string'
+      ? item
+      : (item?.symptom || item?.label || item?.name || item?.text || 'Unknown');
+    const metaParts = [];
+    if (item && typeof item === 'object') {
+      if (item.normalized) metaParts.push(`normalized: ${item.normalized}`);
+      if (item.specificity_weight !== undefined) metaParts.push(`weight: ${item.specificity_weight}`);
+      if (item.value !== undefined && item.value !== null && item.value !== '') metaParts.push(`value: ${item.value}`);
+    }
+    return `<div class="grid grid-cols-[24px_1fr] items-baseline gap-x-md px-md py-3 border-b border-outline-variant last:border-b-0">
+      <div class="text-on-surface-variant">•</div>
+      <div>
+        <div class="font-body-md text-body-md font-semibold text-on-surface">${esc(name)}</div>
+        ${metaParts.length ? `<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">${esc(metaParts.join(' · '))}</div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderRanking(rankingOrDiseases, targetId, highlightTop = false) {
+  const c = document.getElementById(targetId);
+  if (!c) return;
+  const diseases = Array.isArray(rankingOrDiseases)
+    ? rankingOrDiseases
+    : (rankingOrDiseases?.refined_differential_diagnosis
+      || rankingOrDiseases?.differential_diagnosis
+      || []);
+  if (!diseases || diseases.length === 0) {
+    c.innerHTML = `<div class="p-md font-body-sm text-body-sm text-on-surface-variant">
+      No disease candidates were identified from the ontology.</div>`;
+    return;
+  }
+  c.innerHTML = diseases.map((d, idx) => {
+    const isTop = highlightTop && idx === 0;
+    return `
+    <div class="grid grid-cols-[44px_1fr_auto] items-baseline gap-x-md px-md py-4 border-b border-outline-variant last:border-b-0 border-l-4 ${isTop ? 'border-l-primary bg-primary-fixed/25' : 'border-l-transparent'}">
+      <div class="font-label-sm text-label-sm tracking-wide pt-1 ${isTop ? 'text-primary font-bold' : 'text-on-surface-variant'}">#${d.rank}</div>
+      <div>
+        <div class="flex items-center flex-wrap gap-xs mb-1">
+          <div class="font-body-lg text-body-lg font-semibold text-on-surface">${esc(d.disease)}</div>
+          ${isTop ? `<span class="material-symbols-outlined text-primary text-[18px]" data-weight="fill">star</span>
+            <span class="text-[10px] font-semibold uppercase tracking-widest px-sm py-1 rounded-full bg-primary text-on-primary">Top match</span>` : ''}
+        </div>
+        ${d.reasoning
+          ? `<div class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">${esc(d.reasoning)}</div>`
+          : d.supporting_symptoms
+            ? `<div class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">Supported by: ${formatSupportingSymptoms(d.supporting_symptoms)}</div>`
+            : `<div class="font-body-sm text-body-sm text-on-surface-variant italic leading-relaxed">No narrative reasoning was generated for this candidate — scores computed automatically.</div>`}
+        ${renderMetrics(d)}
+      </div>
+      <span class="text-[10px] font-semibold uppercase tracking-widest px-sm py-1 rounded-full whitespace-nowrap self-start ${confBadgeClasses(d.updated_confidence || d.confidence)}">
+        ${d.updated_confidence || d.confidence}
+      </span>
+    </div>`;
+  }).join('');
+}
+
+function metricChip(label, value, tone) {
+  const toneClasses = tone === 'positive' ? 'text-green-700' : tone === 'negative' ? 'text-error' : 'text-on-surface-variant';
+  return `<span class="${toneClasses}">${label}: <span class="font-semibold">${value}</span></span>`;
+}
+
+function renderMetrics(d) {
+  const chips = [];
+  if (d.final_score !== undefined) chips.push(metricChip('Final score', d.final_score));
+  if (d.baseline_score !== undefined) chips.push(metricChip('Baseline', d.baseline_score));
+  if (d.followup_support !== undefined) {
+    const count = d.followup_support_count !== undefined ? ` (${d.followup_support_count})` : '';
+    chips.push(metricChip('Support', `+${d.followup_support}${count}`, 'positive'));
+  }
+  if (d.followup_conflict !== undefined) {
+    const count = d.followup_conflict_count !== undefined ? ` (${d.followup_conflict_count})` : '';
+    chips.push(metricChip('Conflict', `−${d.followup_conflict}${count}`, 'negative'));
+  }
+  if (d.questions_relevant !== undefined) chips.push(metricChip('Relevant Qs', d.questions_relevant));
+  if (chips.length === 0) return '';
+  return `<div class="flex flex-wrap gap-x-md gap-y-1 mt-2 pt-2 border-t border-dashed border-outline-variant text-[11px]">${chips.join('')}</div>`;
+}
+
+function setRankingCollapsed(panelId, toggleId, collapsed) {
+  const panel = document.getElementById(panelId);
+  const toggle = document.getElementById(toggleId);
+  if (!panel || !toggle) return;
+  panel.classList.toggle('hidden', collapsed);
+  toggle.textContent = collapsed ? 'Expand' : 'Collapse';
+  toggle.setAttribute('aria-expanded', String(!collapsed));
+}
+
+function toggleRanking(panelId, toggleId) {
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  setRankingCollapsed(panelId, toggleId, !panel.classList.contains('hidden'));
+}
+
+function formatSupportingSymptoms(items) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  return items.map(item => {
+    if (typeof item === 'string') return esc(item);
+    if (item && typeof item === 'object') {
+      return esc(item.symptom || item.label || item.name || item.text || 'Unknown');
+    }
+    return esc(String(item));
+  }).join(', ');
+}
+
+/* ── Show question ───────────────────────────────────────── */
+
+const PILL_ACTIVE = ['bg-primary', 'border-primary', 'text-on-primary'];
+const PILL_INACTIVE = ['bg-surface-container-lowest', 'border-outline-variant', 'text-on-surface-variant'];
+
+function setPillActive(btn, active) {
+  PILL_ACTIVE.forEach(c => btn.classList.toggle(c, active));
+  PILL_INACTIVE.forEach(c => btn.classList.toggle(c, !active));
+}
+
+function showQuestion(data) {
+  currentQuestion = data;
+  document.getElementById('question-counter').textContent = `Q${data.index} / ${data.total}`;
+  document.getElementById('question-text').textContent = data.question;
+  document.getElementById('answer-input').value = '';
+  document.querySelectorAll('.quick-answers .btn-pill').forEach(b => setPillActive(b, false));
+  show('question-section');
+  document.getElementById('answer-input').focus();
+}
+
+function quickAnswer(value) {
+  document.getElementById('answer-input').value = value;
+  document.querySelectorAll('.quick-answers .btn-pill').forEach(b =>
+    setPillActive(b, b.textContent.trim().toLowerCase() === value));
+  submitAnswer();
+}
+
+async function submitAnswer() {
+  const input = document.getElementById('answer-input');
+  const answer = input.value.trim();
+  if (!answer || !currentQuestion) return;
+  answeredQuestions.push({ question: currentQuestion.question, answer });
+  renderAnsweredLog();
+  hide('question-section');
+  if (currentQuestion.index === currentQuestion.total) show('refining-section');
+  currentQuestion = null;
+  try {
+    await fetch(`${API}/api/answer/${sessionId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answer }),
+    });
+  } catch (_) {}
+}
+
+/* ── Answered log ────────────────────────────────────────── */
+
+function renderAnsweredLog() {
+  document.getElementById('answered-list').innerHTML = answeredQuestions.map(a => {
+    const norm = normalizeForDisplay(a.answer);
+    return `<div class="flex justify-between items-baseline gap-md px-md py-3 border-b border-dashed border-outline-variant last:border-b-0">
+      <span class="font-body-md text-body-md text-on-surface flex-1 min-w-0 truncate">${esc(a.question)}</span>
+      <span class="text-[10px] font-semibold uppercase tracking-widest px-sm py-1 rounded-full shrink-0 ${answerBadgeClasses(norm)}">${norm}</span>
+    </div>`;
+  }).join('');
+  show('answered-section');
+}
+
+function normalizeForDisplay(raw) {
+  const t = raw.trim().toLowerCase();
+  if (['yes','y','yeah','yep','da','sigur'].includes(t)) return 'yes';
+  if (['no','n','nope','nah','nu'].includes(t)) return 'no';
+  return 'neutral';
+}
+
+/* ── Show result ─────────────────────────────────────────── */
+
+function showResult(result) {
+  ['processing-section','refining-section','question-section'].forEach(hide);
+  const diseases = result.refined_differential_diagnosis || result.differential_diagnosis || [];
+  renderRanking(diseases, 'result-list', true);
+  show('result-section');
+  setRankingCollapsed('result-ranking-panel', 'result-ranking-toggle', false);
+  const summary = result.followup_summary || result.notes || '';
+  if (summary) {
+    document.getElementById('result-summary').textContent = summary;
+    document.getElementById('summary-card').classList.remove('hidden');
+  }
+  setIntakeMeta('complete');
+  setConsultationState(false);
+}
+
+/* ── Utility ─────────────────────────────────────────────── */
+
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str || '';
+  return d.innerHTML;
+}
+
+setConsultationState(false);
+setIntakeMeta('');
+</script>
+</body>
+</html>

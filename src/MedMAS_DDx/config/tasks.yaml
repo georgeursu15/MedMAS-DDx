@@ -1,0 +1,341 @@
+extract_symptoms_task:
+  description: >
+    Read the raw user clinical message: "{user_message}".
+    Extract ONLY symptoms explicitly present in the text.
+    Do not infer diagnoses or add symptoms that are not stated.
+
+    ╔══════════════════════════════════════════════════════════════════╗
+    ║  MOST IMPORTANT INSTRUCTION — READ THIS FIRST:                   ║
+    ║                                                                  ║
+    ║  The "name" field MUST be the SHORTEST canonical medical term.   ║
+    ║  Think: "What would the SYMP ontology call this symptom?"        ║
+    ║  Ontology labels are 1-3 word base terms like:                   ║
+    ║    rash, joint pain, fever, cough, headache, fatigue, nausea     ║
+    ║                                                                  ║
+    ║  ALL modifiers go into separate fields (notes/location/etc).     ║
+    ║  If "name" is longer than 3 words → it is almost certainly WRONG ║
+    ╚══════════════════════════════════════════════════════════════════╝
+
+    ── BANNED WORDS IN "name" FIELD (move to "notes") ────────────────
+    persistent, severe, mild, chronic, acute, intense, moderate,
+    worsening, recurrent, intermittent, constant, significant,
+    debilitating, extreme, excessive, noticeable, marked, notable,
+    red, swollen, widespread, spotted, dark, sharp, throbbing,
+    crampy, dry, productive, concentrated, deep, dull
+
+    ── BANNED PATTERNS IN "name" FIELD ───────────────────────────────
+    "... with ..."         → strip "with ..." to notes
+    "... in <body part>"   → strip to location
+    "... on <body part>"   → strip to location
+    "... reaching/peaking" → strip to notes
+    "... that ..."         → strip clause to notes
+    "skin rash"            → use just "rash"
+
+    ── REQUIRED MAPPINGS (use the RIGHT side as "name") ──────────────
+    "skin rash with red spots"   → "rash"
+    "persistent joint pain"      → "joint pain"
+    "severe headache"            → "headache"
+    "dry persistent cough"       → "cough"
+    "sharp abdominal pain"       → "abdominal pain"
+    "dark concentrated urine"    → "dark urine"
+    "significant weight loss"    → "weight loss"
+    "excessive sweating"         → "sweating"
+    "widespread skin rash"       → "rash"
+    "swollen lymph nodes in neck"→ "swollen lymph nodes"
+
+    These are ALWAYS valid as-is (do not simplify further):
+    "loss of appetite", "swollen lymph nodes", "high fever",
+    "blurred and distorted vision", "dark urine", "chest pain",
+    "joint pain", "muscle pain", "back pain", "belly pain",
+    "red spots over body", "yellowish skin", "yellowing of eyes",
+    "mood swings", "fast heart rate", "muscle weakness",
+    "skin peeling", "spinning movements", "loss of balance",
+    "passage of gases", "internal itching", "burning micturition"
+
+    ── EXPLICIT MENTIONS THAT ARE SYMPTOMS ────────────────────────────
+    Some patient phrases describe a symptom *explicitly* even though they
+    don't use the clinical word. Treat these as EXPLICIT symptom mentions
+    and extract them using the canonical term on the RIGHT:
+
+      "blood sugar levels fluctuate"          → name: "hyperglycemia"
+      "blood sugar fluctuating"                → name: "hyperglycemia"
+      "irregular blood sugar"                  → name: "hyperglycemia"
+      "high blood sugar"                       → name: "hyperglycemia"
+      "elevated blood sugar"                   → name: "hyperglycemia"
+      "monitoring blood sugar"                 → name: "hyperglycemia"   notes: "patient monitoring glucose"
+      "excessive thirst"                       → name: "polydipsia"
+      "drinking a lot of water"                → name: "polydipsia"
+      "always thirsty"                         → name: "polydipsia"
+      "increased appetite"                     → name: "increased appetite"
+      "excessive hunger"                       → name: "increased appetite"  notes: "excessive"
+      "constantly hungry"                      → name: "increased appetite"
+      "frequent urination"                     → name: "frequent urination"
+      "urinating a lot"                        → name: "frequent urination"
+      "waking up to urinate"                   → name: "frequent urination"   notes: "nocturia"
+
+    RULE: "hunger" and "increased appetite" refer to the same clinical
+    concept (polyphagia). Emit ONLY ONE entry for them — use
+    "increased appetite" as the canonical name. Do NOT emit both.
+
+    RULE: "blood sugar monitoring" alone (without any abnormality mentioned)
+    is NOT a symptom — it is a behaviour. But "blood sugar levels that
+    fluctuate" or "irregular blood sugar" IS an explicit symptom (glucose
+    dysregulation / hyperglycemia) and MUST be extracted.
+
+    ── COMPOUND SPLITTING ────────────────────────────────────────────
+    "nausea and vomiting" → two entries: "nausea" + "vomiting"
+    "fever and chills"    → two entries: "fever" + "chills"
+
+    ── REQUIRED FIELD: "variants" (EXACTLY 2 entries per symptom) ────
+    For EVERY symptom you emit, also produce a "variants" list with EXACTLY
+    2 alternative phrasings of the SAME clinical concept. Variants are used
+    as fallback search terms when the primary "name" does not directly hit
+    a SYMP ontology label.
+
+    Variants are NORMALISED rewordings of "name" — NOT different symptoms,
+    NOT loose synonyms of unrelated concepts. Both variants must describe
+    the exact same clinical finding as "name".
+
+    Good variant patterns:
+      • Drop a morphological suffix (-ish, -ing, -ness):
+          "yellowish skin"      → variants: ["yellow skin", "skin yellowing"]
+          "yellowing of eyes"   → variants: ["yellow eyes", "eye yellowing"]
+          "darkness of urine"   → variants: ["dark urine", "urine darkening"]
+      • Restructure the noun phrase ("X of Y" ↔ "Y X"):
+          "loss of appetite"    → variants: ["appetite loss", "anorexia"]
+          "loss of balance"     → variants: ["balance loss", "imbalance"]
+          "passage of gases"    → variants: ["flatulence", "gas passing"]
+      • Use a clinical synonym when the lay term is obvious:
+          "burning micturition" → variants: ["dysuria", "burning urination"]
+          "joint pain"          → variants: ["arthralgia", "pain in joints"]
+          "muscle pain"         → variants: ["myalgia", "pain in muscles"]
+          "fast heart rate"     → variants: ["tachycardia", "rapid heartbeat"]
+
+    Rules for variants:
+      1. Each variant must be 1-4 words.
+      2. Both variants must describe the SAME clinical concept as "name".
+      3. Provide EXACTLY 2 variants per symptom — no more, no less.
+      4. Variants must be lexically distinct from "name" and from each other
+         (do NOT just change case or add/remove punctuation).
+      5. If the symptom has an obvious one-word clinical synonym
+         (jaundice, dysuria, anorexia, arthralgia, myalgia, tachycardia,
+         polydipsia, polyphagia, hyperglycemia), include it as one variant.
+
+    ── MANDATORY SELF-CHECK (before output) ──────────────────────────
+    For EVERY symptom in your output, verify:
+      1. Is "name" > 3 words? → WRONG. Simplify.
+      2. Does "name" contain any BANNED word above? → WRONG. Move it to notes.
+      3. Does "name" contain a body part not integral to the base term? → WRONG. Move to location.
+      4. Would this exact "name" be an rdfs:label in SYMP ontology? → If no, use shorter form.
+      5. Did the patient describe blood sugar abnormality, thirst, hunger, or
+         frequent urination in any wording? → Ensure the corresponding
+         canonical symptom is in the output.
+      6. Did you emit BOTH "hunger" and "increased appetite"? → Remove
+         "hunger" — these are duplicates.
+      7. Does this symptom have EXACTLY 2 entries in "variants"? → If not, fix it.
+      8. Are both variants describing the same clinical concept as "name"? → If not, replace.
+    Fix ALL violations before returning output.
+  expected_output: >
+    A JSON object with key "symptoms" containing a list of symptom objects.
+    Each object MUST have:
+      - "name" (string): the core medical/ontology term, 1-3 words, no adjectives,
+        no locations, no descriptions.
+      - "variants" (list of EXACTLY 2 strings): normalised alternative phrasings
+        of the same clinical concept, used as fallback SYMP search terms.
+    Optional keys: "duration", "location", "onset", "notes".
+    The "notes" field captures severity, appearance, and qualifiers stripped from name.
+    All values must come from the user message only.
+
+    FINAL VALIDATION: Before outputting, verify that (a) NO "name" field contains
+    any BANNED adjective (persistent, severe, mild, red, dark, sharp, etc.), any
+    body location, or any descriptive phrase; (b) every symptom has EXACTLY 2
+    "variants"; (c) both variants describe the same clinical concept as "name".
+    If name > 3 words, it is wrong.
+  agent: symptom_extractor
+
+clarify_followup_symptoms_task:
+  description: >
+    Disease symptom profiles have already been fetched from the database by
+    Python and are provided at the end of this description as
+    "DISEASE SYMPTOM PROFILES (pre-fetched by Python)".
+    You also receive the differential_diagnosis (ranking, top 25 diseases) and
+    mapped_symptom_labels as JSON blocks appended at runtime.
+    You do NOT need to call any tools.
+
+    ── TRIGGER RULE ──────────────────────────────────────────────────────────
+    If total_diseases_found <= 1 (read from the DIFFERENTIAL DIAGNOSIS block):
+      Set followup_needed = false. Return empty arrays immediately.
+    If total_diseases_found > 1:
+      Follow-up is MANDATORY. Continue with the steps below.
+    ──────────────────────────────────────────────────────────────────────────
+
+    Step 1 - Read the provided disease_symptom_profiles.
+      Use ONLY the "DISEASE SYMPTOM PROFILES (pre-fetched by Python)" JSON block.
+      Each entry has: "disease", "disease_uri", "candidate_symptoms" (list of
+      symptom label strings), "status".
+      Only use entries with status "profiled" in the steps below.
+      Copy disease_symptom_profiles verbatim into your output — do not alter
+      any disease label, URI, symptom label, or status field.
+      Never invent or add symptom labels that are not in the profiles.
+
+    Step 2 - Build a global discriminative symptom pool.
+      Collect every symptom label across all profiled diseases.
+      Apply these filters IN ORDER:
+        a) Remove symptoms already present in the patient message
+           (case-insensitive match against extracted symptom names AND
+           mapped SYMP labels in the provided JSON).
+           ★ NON-NEGOTIABLE: asking about already-known symptoms wastes
+             question slots and corrupts Phase-2 scoring. When uncertain
+             whether two terms refer to the same concept, DROP IT.
+        b) Remove symptoms that appear in ALL candidate disease profiles
+           (zero discriminative power; asking produces no ranking signal).
+        c) Score each remaining symptom:
+             score = count of profiled diseases that do NOT list this symptom
+             Higher score = more exclusive = more discriminative.
+        d) Break ties: prefer symptoms linked to higher-ranked diseases.
+
+    Step 3 - Classify and select questions (max 11).
+      Select the highest-scoring symptoms, asking as few as needed to
+      separate the top diagnoses.
+
+      ★★★ MANDATORY CLASSIFICATION BEFORE ASKING ★★★
+      STEP A: Classify each selected symptom as EITHER patient_reportable
+      OR investigation_required using reasoning, not hardcoded lists.
+
+      CLASSIFICATION PRIORITY: patient_reportable WINS.
+      "Could a patient notice or feel this WITHOUT medical equipment?"
+      If yes → patient_reportable. Period.
+
+      PATIENT_REPORTABLE (check FIRST — wins if ANY applies):
+        1. Patient directly feels/experiences it?
+           (fever, cough, pain, nausea, dizziness, fatigue, drowsiness,
+           confusion, lethargy, sleep disturbance)
+        2. Patient can directly observe it?
+           (bleeding, rash, swelling, dark urine, pale stool,
+           yellowing skin or eyes, hair loss)
+        3. Patient can describe it without equipment?
+        4. It's a subjective symptom or patient-observable sign?
+        5. A caregiver/family member could notice it?
+           (confusion, abnormal behavior, drowsiness, personality changes)
+        → YES to ANY of the above = patient_reportable. No exceptions.
+
+      INVESTIGATION_REQUIRED (check ONLY if NOT patient_reportable):
+        1. Requires specialized equipment? (BP cuff, oximeter, ECG, imaging)
+        2. Is a measurement or lab value? (glucose mg/dL, WBC count, enzymes)
+        3. Is an imaging/radiology result? (X-ray, CT, MRI, ultrasound finding)
+        4. Requires equipment-based clinical assessment?
+           (heart murmur via stethoscope, retinal finding, microscopy)
+
+      ★★★ MANDATORY SEPARATION STEP ★★★
+      STEP B: Create TWO SEPARATE LISTS:
+        List_A = investigation_required → add to investigations_required with reason
+        List_B = patient_reportable     → generate yes/no questions only
+
+      FORBIDDEN: A patient_reportable symptom MUST NOT appear in
+      investigations_required under any circumstance — not even with a
+      reason like "treated here as patient_reportable".
+
+      AUDIT: No symptom may appear in BOTH questions_asked AND
+      investigations_required. If it does, the output is WRONG.
+
+    Step 4 - Write questions (for List_B only).
+      For each symptom in List_B, emit one yes/no question:
+      - Common everyday terms (fever, cough, headache, bleeding, vomiting,
+        diarrhea, chest pain, sore throat, muscle pain, joint pain):
+        ask directly — "Do you have <symptom>?" — no parentheses.
+      - Medical/technical terms: use plain explanation + term in parentheses —
+        "Do you have <simple explanation> (<medical term>)?"
+        CORRECT: "Do you have red or itchy skin spots (rash)?"
+        FORBIDDEN: "Do you have rash (rash)?"
+      Keep each question ≤ 14 words, yes/no answerable, single symptom.
+      Never duplicate a question. Never ask about investigation_required items.
+
+    ABSOLUTE RULES:
+    - Never call any tools. All data is already provided.
+    - Never invent disease URIs, symptom URIs, or symptom labels.
+    - Only use symptom labels from the provided disease_symptom_profiles.
+    - Never ask about a symptom the patient already confirmed.
+    - patient_reportable classification WINS when uncertain.
+    - confusion, drowsiness, lethargy, dark urine, acholic stool,
+      ascites (swollen belly) are ALL patient_reportable — no exceptions.
+    - investigations_required must contain ONLY investigation_required items.
+    - Never produce or suggest a final diagnosis in this step.
+  expected_output: >
+    A JSON object with keys:
+      "followup_needed": boolean — true only when total_diseases_found > 1
+      "disease_symptom_profiles": list of objects copied from provided profiles:
+        "disease": disease label string
+        "disease_uri": disease URI string or null
+        "candidate_symptoms": list of symptom label strings
+        "status": one of "profiled" | "skipped_for_followup" | "no_symptoms_found"
+      "questions_asked": list of question objects, max 11:
+        "symptom": the symptom label string used to generate the question
+        "question": the yes/no question text to present to the patient
+        "patient_answer": null  ← always null at output time; filled externally
+      "investigations_required": list of objects:
+        "finding": symptom/finding label
+        "reason": brief reason, e.g. "requires laboratory or imaging investigation"
+      "notes": brief summary — diseases profiled, symptoms in pool, questions selected
+  agent: followup_interviewer
+
+refine_diagnosis_task:
+  description: >
+    Pre-computed scores from Python's RefineScoring function are provided at
+    the end of this description as "PRE-COMPUTED SCORES (Python refine_scoring result)".
+    You also receive the initial ranking and follow-up answers as JSON blocks.
+    You do NOT need to call any tools. Do NOT perform any arithmetic yourself.
+
+    ── Step 1: Read the PRE-COMPUTED SCORES block ───────────────────────────
+
+    The PRE-COMPUTED SCORES JSON contains:
+      - refined_differential_diagnosis: re-ranked list with rank, disease,
+        baseline_score, followup_support, followup_conflict, final_score,
+        updated_confidence
+      - per_disease_details: {disease → {confirmed_symptoms (list of
+        {symptom, weight}), denied_symptoms (list of {symptom, weight}),
+        neutral_symptoms, baseline_already_counted, support_delta,
+        conflict_delta, final_score}}
+      - discriminative_weights: {symptom → weight}
+      - most_impactful_answer: {symptom, answer, weight, direction}
+      - scoring_metadata: stats
+
+    ── Step 2: Build the output ─────────────────────────────────────────────
+
+    a) Copy the full refined_differential_diagnosis list verbatim from the
+       PRE-COMPUTED SCORES. Add a "reasoning" field to each entry (see below).
+    b) For each disease, write a reasoning narrative using per_disease_details:
+         - Name each confirmed symptom and its weight (e.g. "+0.333")
+         - Name each denied symptom and its weight (e.g. "-0.250")
+         - If baseline_already_counted is non-empty, note those symptoms
+           were already in the Phase 1 baseline and were not double-counted.
+         - State the final_score and updated_confidence.
+    c) Write followup_summary using most_impactful_answer: which symptom,
+       which answer, and which direction (supported/conflicted) it had the
+       greatest effect on ranking.
+    d) Copy discriminative_weights verbatim from PRE-COMPUTED SCORES.
+    e) If all patient answers were neutral, set notes to:
+       "All follow-up answers were neutral; ranking unchanged from baseline."
+
+    ABSOLUTE RULES:
+    - Do NOT call any tools.
+    - Do NOT perform arithmetic. Copy ALL numeric values exactly from
+      PRE-COMPUTED SCORES.
+    - Only diseases in the initial ranking may appear in output.
+    - Never invent diseases, symptoms, scores, weights, or confidence tiers.
+    - An unchanged ranking with an honest explanation is always correct.
+    - All score values must be rounded to 3 decimal places as given.
+  expected_output: >
+    A JSON object with keys:
+      "refined_differential_diagnosis": list of ranked disease objects:
+        "rank": integer starting at 1 — copy from PRE-COMPUTED SCORES
+        "disease": disease label — copy exactly from PRE-COMPUTED SCORES
+        "baseline_score": float — copy from PRE-COMPUTED SCORES
+        "followup_support": float — copy from PRE-COMPUTED SCORES
+        "followup_conflict": float — copy from PRE-COMPUTED SCORES
+        "final_score": float — copy from PRE-COMPUTED SCORES
+        "updated_confidence": "HIGH" | "MEDIUM" | "LOW" — copy from PRE-COMPUTED SCORES
+        "reasoning": string — evidence narrative written from per_disease_details
+      "discriminative_weights": object — copy verbatim from PRE-COMPUTED SCORES
+      "followup_summary": string — narrative from most_impactful_answer
+      "notes": string — caveats (neutral answers, ties, etc.)
+  agent: diagnosis_refiner

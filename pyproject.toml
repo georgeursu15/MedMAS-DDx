@@ -1,0 +1,41 @@
+[project]
+name = "MedMAS_DDx"
+version = "0.1.0"
+description = "MedMAS_DDx"
+authors = [{ name = "George Ursu", email = "ursugeorge15@gmail.com" }]
+requires-python = ">=3.10,<3.14"
+dependencies = [
+    "crewai-tools[mcp]>=1.10.1",
+    "crewai[google-genai,litellm,tools]==1.10.1",
+    "fastapi>=0.135.2",
+    "mcp>=1.26.0",
+    "openpyxl>=3.1.0",
+    "torch>=2.0.0",
+    "transformers>=4.40.0",
+    "uvicorn>=0.41.0",
+]
+
+[project.scripts]
+MedMAS_DDx = "MedMAS_DDx.main:run"
+run_crew = "MedMAS_DDx.main:run"
+train = "MedMAS_DDx.main:train"
+replay = "MedMAS_DDx.main:replay"
+test = "MedMAS_DDx.main:test"
+run_with_trigger = "MedMAS_DDx.main:run_with_trigger"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.crewai]
+type = "crew"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

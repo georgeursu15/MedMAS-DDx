@@ -1,0 +1,30 @@
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>.
+@prefix rep: <http://www.openrdf.org/config/repository#>.
+@prefix sr: <http://www.openrdf.org/config/repository/sail#>.
+@prefix sail: <http://www.openrdf.org/config/sail#>.
+@prefix graphdb: <http://www.ontotext.com/config/graphdb#>.
+
+[] a rep:Repository ;
+    rep:repositoryID "DoidOntologyRepository" ;
+    rdfs:label "MedMAS_DDx disease ontology repository" ;
+    rep:repositoryImpl [
+        rep:repositoryType "graphdb:SailRepository" ;
+        sr:sailImpl [
+            sail:sailType "graphdb:Sail" ;
+            graphdb:read-only "false" ;
+            graphdb:ruleset "rdfsplus-optimized" ;
+            graphdb:disable-sameAs "true" ;
+            graphdb:check-for-inconsistencies "false" ;
+            graphdb:enable-context-index "false" ;
+            graphdb:enablePredicateList "true" ;
+            graphdb:enable-fts-index "false" ;
+            graphdb:query-timeout "0" ;
+            graphdb:query-limit-results "0" ;
+            graphdb:base-URL "http://example.org/owlim#" ;
+            graphdb:defaultNS "" ;
+            graphdb:imports "" ;
+            graphdb:repository-type "file-repository" ;
+            graphdb:storage-folder "storage" ;
+            graphdb:enable-literal-index "true" ;
+        ]
+    ].
