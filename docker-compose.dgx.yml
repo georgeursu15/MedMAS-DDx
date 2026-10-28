@@ -81,8 +81,7 @@ services:
       - ./graphdb/init-graphdb.sh:/scripts/init-graphdb.sh:ro
       - ./graphdb/repo-config-DoidOntologyRepository.ttl:/config/repo-config-DoidOntologyRepository.ttl:ro
       - ./graphdb/repo-config-HpOntologyRepository.ttl:/config/repo-config-HpOntologyRepository.ttl:ro
-      - ./graphdb/doid-international.owl:/data/doid-international.owl:ro
-      - ./graphdb/hp.owl:/data/hp.owl:ro
+      - ./graphdb/data:/data
     command: ["sh", "/scripts/init-graphdb.sh"]
     restart: "no"
 
