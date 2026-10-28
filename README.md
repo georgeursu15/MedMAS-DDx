@@ -5,11 +5,11 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/paper-IEEE%20ICCP%202026-b31b1b" alt="Paper">
-  <img src="https://img.shields.io/badge/python-3.10%E2%80%933.13-3776ab" alt="Python">
-  <img src="https://img.shields.io/badge/agents-CrewAI%201.10-ff6b35" alt="CrewAI">
-  <img src="https://img.shields.io/badge/knowledge%20base-GraphDB%20%C2%B7%20SPARQL-0b7285" alt="GraphDB">
-  <img src="https://img.shields.io/badge/ontologies-SYMP%20%C2%B7%20DOID%20%C2%B7%20HPO-495057" alt="Ontologies">
+  <a href="https://arxiv.org/abs/2610.36325"><img src="https://img.shields.io/badge/paper-arXiv%3A2610.36325-b31b1b" alt="Paper"></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/badge/python-3.10%E2%80%933.13-3776ab" alt="Python"></a>
+  <a href="https://github.com/crewAIInc/crewAI"><img src="https://img.shields.io/badge/agents-CrewAI%201.10-ff6b35" alt="CrewAI"></a>
+  <a href="https://graphdb.ontotext.com/"><img src="https://img.shields.io/badge/knowledge%20base-GraphDB%20%C2%B7%20SPARQL-0b7285" alt="GraphDB"></a>
+  <a href="graphdb/README.md"><img src="https://img.shields.io/badge/ontologies-SYMP%20%C2%B7%20DOID%20%C2%B7%20HPO-495057" alt="Ontologies"></a>
 </p>
 
 <p align="center">
@@ -19,6 +19,7 @@
 > **Reference implementation for:**
 > R. R. Szomiu, G. Ursu, A. Groza, *Ontology-guided multi-agent reasoning for
 > explainable differential diagnosis*, IEEE ICCP 2026.
+> Preprint: [arXiv:2610.36325](https://arxiv.org/abs/2610.36325).
 > Artificial Intelligence Research Institute (AIRi@UTCN), Department of Computer
 > Science, Technical University of Cluj-Napoca.
 
@@ -196,7 +197,15 @@ cp /path/to/graphdb.license graphdb/license/graphdb.license
 cp .env.example .env        # then edit
 ```
 
-With an external LLM provider:
+Then pick one of the two deployments below. They differ only in where the
+language model runs; both stand up the same knowledge base. On the first run,
+`graphdb-init` loads `doid-international.owl` (33 MB) and `hp.owl` (73 MB) into
+two repositories, which takes several minutes. It is idempotent: re-running it
+when the repositories already exist exits cleanly.
+
+### With an external LLM provider
+
+Reads `.env`. Any LiteLLM-compatible model; nothing runs on a GPU locally.
 
 ```bash
 docker compose -f docker-compose.external-llm.yml up -d graphdb
@@ -204,11 +213,51 @@ docker compose -f docker-compose.external-llm.yml run --rm graphdb-init
 docker compose -f docker-compose.external-llm.yml up app
 ```
 
-The first `graphdb-init` run loads `doid-international.owl` (33 MB) and
-`hp.owl` (73 MB) into two repositories and takes several minutes. It is
-idempotent: re-running it when the repositories already exist exits cleanly.
+The interactive web UI is then served on port 8000 from
+`src/MedMAS_DDx/frontend.html`.
 
-The web UI is served from `src/MedMAS_DDx/frontend.html`.
+### With a locally served model
+
+Reads `.env.dgx`. This is the configuration the paper's runs used: a **vLLM**
+container serves `google/medgemma-27b-text-it` behind an OpenAI-compatible API,
+and the application reaches it at `OPENAI_API_BASE=http://vllm:8000/v1`. Because
+the interface is the same, no application code changes between the two
+deployments — only the endpoint does.
+
+The model is served with fp8 weight quantization and an fp8 KV cache, a
+65,536-token context window, and 85% of the GPU's memory reserved.
+
+**Additional requirements**
+
+- An NVIDIA GPU and the NVIDIA Container Toolkit.
+- A Hugging Face token in `HUGGING_FACE_HUB_TOKEN`. MedGemma is a gated model:
+  accept its licence on the Hugging Face model page first, or the download
+  fails with a 401.
+
+**Two values in `docker-compose.dgx.yml` are specific to the machine this ran
+on and must be changed before the file will work anywhere else:**
+
+| Key | Current value | What it is |
+|---|---|---|
+| `vllm.deploy...device_ids` | `["2"]` | Pins the server to GPU index 2. |
+| `vllm.volumes` | `/mnt/QNAP/urdag/hf_cache` | Host path for the Hugging Face weight cache. |
+
+```bash
+docker compose -f docker-compose.dgx.yml up -d graphdb
+docker compose -f docker-compose.dgx.yml run --rm graphdb-init
+docker compose -f docker-compose.dgx.yml up app
+```
+
+The last command also starts vLLM and blocks until its health check passes.
+Allow up to ten minutes on a cold start — the weights have to be downloaded and
+loaded before the endpoint answers, and the health check is configured with a
+600-second grace period for exactly that reason.
+
+One difference worth knowing: in this file the `app` service defaults to
+`command: ["test"]`, which runs `batch_runner` over the benchmark rather than
+the interactive server, and it publishes no port. This deployment reproduces
+the evaluation; it does not serve the web UI. GraphDB's own Workbench is still
+published on 7200.
 
 ### Without Docker
 
@@ -239,7 +288,7 @@ Each agent resolves its model in this order: its own override, then
 | `MEDMAS_DDX_LLM` | Fallback for every agent without its own override. |
 | `MEDMAS_DDX_LLM_TIMEOUT` | LLM call timeout in seconds (`300`). |
 | `MODEL` | Model passed through by the Compose files (`google/gemini-3.1-flash-lite-preview`). |
-| `API_BASE`, `OPENAI_API_BASE` | Endpoint for a self-hosted or proxied provider. |
+| `OPENAI_API_BASE` | Endpoint for a self-hosted or proxied OpenAI-compatible provider. |
 
 Provider credentials are read by LiteLLM from the usual variables
 (`GOOGLE_API_KEY`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`,
