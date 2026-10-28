@@ -1,0 +1,119 @@
+
+name: medmas-ddx-dgx
+
+services:
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: MedMAS_DDx-vllm
+    restart: on-failure:3
+    expose:
+      - "8000"
+    ipc: host                          
+    environment:
+      HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN:-}
+      VLLM_LOGGING_LEVEL: INFO
+    volumes:
+      - /mnt/QNAP/urdag/hf_cache:/root/.cache/huggingface
+    command:
+      - --model
+      - google/medgemma-27b-text-it
+      - --served-model-name
+      - google/medgemma-27b-text-it
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --max-model-len
+      - "65536"
+      - --quantization
+      - fp8                          
+      - --kv-cache-dtype
+      - fp8                            
+      - --gpu-memory-utilization
+      - "0.85"               
+      - --dtype
+      - auto
+      - --trust-remote-code
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              device_ids: ["2"]
+              capabilities: [gpu]
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request,sys; r=urllib.request.urlopen(\"http://localhost:8000/health\",timeout=5); sys.exit(0 if r.status==200 else 1)'"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+      start_period: 600s              
+
+  graphdb:
+    image: ontotext/graphdb:11.3.2
+    container_name: MedMAS_DDx-graphdb
+    restart: unless-stopped
+    expose:
+      - "7200"
+    ports:
+      - "7200:7200"        
+    environment:
+      GDB_JAVA_OPTS: -Dgraphdb.license.file=/licenses/graphdb.license
+    volumes:
+      - graphdb-data:/opt/graphdb/home
+      - ./graphdb/license:/licenses:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7200/rest/repositories"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  graphdb-init:
+    image: curlimages/curl:8.12.1
+    container_name: MedMAS_DDx-graphdb-init
+    depends_on:
+      graphdb:
+        condition: service_healthy
+    environment:
+      GRAPHDB_URL: http://graphdb:7200
+    volumes:
+      - ./graphdb/init-graphdb.sh:/scripts/init-graphdb.sh:ro
+      - ./graphdb/repo-config-DoidOntologyRepository.ttl:/config/repo-config-DoidOntologyRepository.ttl:ro
+      - ./graphdb/repo-config-HpOntologyRepository.ttl:/config/repo-config-HpOntologyRepository.ttl:ro
+      - ./graphdb/doid-international.owl:/data/doid-international.owl:ro
+      - ./graphdb/hp.owl:/data/hp.owl:ro
+    command: ["sh", "/scripts/init-graphdb.sh"]
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medmas_ddx-app-dgx:latest
+    container_name: MedMAS_DDx-app-dgx
+    command: ["test"]
+
+    depends_on:
+      vllm:
+        condition: service_healthy
+      graphdb-init:
+        condition: service_completed_successfully
+    env_file:
+      - .env.dgx
+    environment:
+
+      OPENAI_API_BASE: http://vllm:8000/v1
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-EMPTY}
+      GRAPHDB_REPOSITORY_URL: http://graphdb:7200/repositories/DoidOntologyRepository
+      HP_GRAPHDB_REPOSITORY_URL: http://graphdb:7200/repositories/HpOntologyRepository
+      REFINE_SUPPORT_WEIGHT: 0.6
+      REFINE_CONFLICT_WEIGHT: 0.2
+    volumes:
+      - ./eval_results:/app/eval_results
+      - ./logs:/app/logs
+    restart: "no"
+
+volumes:
+  graphdb-data:
+    driver: local

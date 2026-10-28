@@ -1,0 +1,63 @@
+
+name: medmas-ddx-external
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medmas_ddx-app-extern:latest
+    container_name: MedMAS_DDx-app-extern
+    command: ["normal"]
+    restart: unless-stopped
+    depends_on:
+      graphdb-init:
+        condition: service_completed_successfully
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      MODEL: ${MODEL:-google/gemini-3.1-flash-lite-preview}
+      MEDMAS_DDX_LLM: ${MEDMAS_DDX_LLM:-google/gemini-3.1-flash-lite-preview}
+      GRAPHDB_REPOSITORY_URL: http://graphdb:7200/repositories/DoidOntologyRepository
+      HP_GRAPHDB_REPOSITORY_URL: http://graphdb:7200/repositories/HpOntologyRepository
+
+  graphdb:
+    image: ontotext/graphdb:11.3.2
+    container_name: MedMAS_DDx-graphdb-extern
+    restart: unless-stopped
+    ports:
+      - "7200:7200"          
+    environment:
+      GDB_JAVA_OPTS: -Dgraphdb.license.file=/licenses/graphdb.license
+    volumes:
+      - graphdb-data-extern:/opt/graphdb/home
+      - ./graphdb/license:/licenses:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:7200/rest/repositories"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+
+  graphdb-init:
+    image: curlimages/curl:8.12.1
+    container_name: MedMAS_DDx-graphdb-init-extern
+    depends_on:
+      graphdb:
+        condition: service_healthy
+    environment:
+      GRAPHDB_URL: http://graphdb:7200
+    volumes:
+      - ./graphdb/init-graphdb.sh:/scripts/init-graphdb.sh:ro
+      - ./graphdb/repo-config-DoidOntologyRepository.ttl:/config/repo-config-DoidOntologyRepository.ttl:ro
+      - ./graphdb/repo-config-HpOntologyRepository.ttl:/config/repo-config-HpOntologyRepository.ttl:ro
+      - ./graphdb/doid-international.owl:/data/doid-international.owl:ro
+      - ./graphdb/hp.owl:/data/hp.owl:ro
+    command: ["sh", "/scripts/init-graphdb.sh"]
+    restart: "no"
+
+volumes:
+  graphdb-data-extern:
+    driver: local
