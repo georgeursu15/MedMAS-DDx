@@ -1,2 +1,43 @@
-graphdb/license/graphdb.license
-graphdb/.DS_Store
+# --- Secrets and licences -- never commit these ---------------------------
+.env
+.env.*
+!.env.example
+graphdb/license/
+*.license
+
+# --- Third-party data, fetched rather than redistributed ------------------
+# Ontologies: graphdb/init-graphdb.sh downloads them from their official OBO
+# release URLs on first run.
+graphdb/data/*
+!graphdb/data/.gitkeep
+
+# Benchmark: download these by hand from the Q4Dx authors' repository.
+# See Benchmark/README.md.
+Benchmark/PatientCases.csv
+Benchmark/MedQDx_Benchmark.csv
+
+# --- Run output -----------------------------------------------------------
+eval_results/
+logs/
+*.xlsx
+
+# --- Python ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Editors and OS -------------------------------------------------------
+.DS_Store
+.idea/
+.vscode/
+
+# --- Large local recordings ----------------------------------------------
+*.mov
+*.mp4

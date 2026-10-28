@@ -6,6 +6,13 @@ GRAPHDB_URL="${GRAPHDB_URL:-http://graphdb:7200}"
 REPOS_ENDPOINT="${GRAPHDB_URL}/rest/repositories"
 LICENSE_HINT_URL="https://www.ontotext.com/products/graphdb/#try-graphdb"
 
+# Ontologies are not vendored in this repository; they are fetched once from
+# their official OBO release URLs. These PURLs name an exact, immutable
+# release, so the knowledge base is reproducible without carrying 106 MB of
+# OWL in git. Change a date here and every specificity weight changes with it.
+DOID_URL="http://purl.obolibrary.org/obo/doid/releases/2026-04-30/translations/doid-international.owl"
+HP_URL="http://purl.obolibrary.org/obo/hp/releases/2026-02-16/hp.owl"
+
 echo "[graphdb-init] Waiting for GraphDB at ${GRAPHDB_URL} ..."
 until curl -fsS "${REPOS_ENDPOINT}" >/dev/null 2>&1; do
   sleep 2
@@ -99,9 +106,40 @@ repo_triple_count() {
   echo "${count}"
 }
 
+fetch_ontology_if_missing() {
+  target="$1"
+  url="$2"
+  label="$3"
+
+  if [ -s "${target}" ]; then
+    echo "[graphdb-init] ${label} already present"
+    return
+  fi
+
+  echo "[graphdb-init] Downloading ${label}"
+  echo "[graphdb-init]   from ${url}"
+  echo "[graphdb-init]   This happens once; the file is cached in ./graphdb/data on the host."
+
+  tmp="${target}.part"
+  if ! curl -fsSL --retry 3 --retry-delay 5 -o "${tmp}" "${url}"; then
+    rm -f "${tmp}"
+    echo "[graphdb-init] ERROR: could not download ${label}." >&2
+    echo "[graphdb-init] Fetch it yourself and save it as ./graphdb/data/$(basename "${target}"):" >&2
+    echo "[graphdb-init]   ${url}" >&2
+    exit 1
+  fi
+
+  # Only move into place once the download completed, so an interrupted run
+  # cannot leave a truncated file that the next run would treat as present.
+  mv "${tmp}" "${target}"
+  echo "[graphdb-init] Saved ${label}"
+}
+
 import_ontology_if_empty() {
   repo_id="$1"
   ontology_path="$2"
+  ontology_url="$3"
+  ontology_label="$4"
 
   count="$(repo_triple_count "${repo_id}")"
  
@@ -112,6 +150,10 @@ import_ontology_if_empty() {
   if [ "${count}" != "0" ]; then
     echo "[graphdb-init] Repository ${repo_id} has only ${count} triples (system metadata); importing ontology"
   fi
+
+  # Only now, once we know the import will actually run, is the file worth
+  # having on disk.
+  fetch_ontology_if_missing "${ontology_path}" "${ontology_url}" "${ontology_label}"
 
   echo "[graphdb-init] Importing ${ontology_path} into ${repo_id}"
   response_file="$(mktemp)"
@@ -134,7 +176,9 @@ import_ontology_if_empty() {
 create_repo_if_missing "DoidOntologyRepository" "/config/repo-config-DoidOntologyRepository.ttl"
 create_repo_if_missing "HpOntologyRepository" "/config/repo-config-HpOntologyRepository.ttl"
 
-import_ontology_if_empty "DoidOntologyRepository" "/data/doid-international.owl"
-import_ontology_if_empty "HpOntologyRepository" "/data/hp.owl"
+import_ontology_if_empty "DoidOntologyRepository" "/data/doid-international.owl" \
+  "${DOID_URL}" "Human Disease Ontology (DOID 2026-04-30)"
+import_ontology_if_empty "HpOntologyRepository" "/data/hp.owl" \
+  "${HP_URL}" "Human Phenotype Ontology (HPO 2026-02-16)"
 
 echo "[graphdb-init] Initialization completed"

@@ -170,7 +170,7 @@ Defined in [`src/MedMAS_DDx/config/agents.yaml`](src/MedMAS_DDx/config/agents.ya
 | [`src/MedMAS_DDx/tools/`](src/MedMAS_DDx/tools/) | SPARQL query tools, the two scoring functions, the SapBERT scorer. |
 | [`src/MedMAS_DDx/evaluation/`](src/MedMAS_DDx/evaluation/) | Batch evaluation harness, reporting and export. |
 | [`Benchmark/`](Benchmark/) | Benchmark case set and the Docker test runner. |
-| [`graphdb/`](graphdb/) | Ontology dumps, repository configs and the GraphDB init script. |
+| [`graphdb/`](graphdb/) | Repository configs and the GraphDB init script, which fetches the ontologies. |
 
 ---
 
@@ -197,11 +197,21 @@ cp /path/to/graphdb.license graphdb/license/graphdb.license
 cp .env.example .env        # then edit
 ```
 
-Then pick one of the two deployments below. They differ only in where the
-language model runs; both stand up the same knowledge base. On the first run,
-`graphdb-init` loads `doid-international.owl` (33 MB) and `hp.owl` (73 MB) into
-two repositories, which takes several minutes. It is idempotent: re-running it
+Neither the ontologies nor the benchmark are kept in this repository, and the
+two are handled differently.
+
+**The ontologies are fetched for you.** On the first run `graphdb-init`
+downloads `doid-international.owl` (33 MB) and `hp.owl` (73 MB) from their
+official OBO release URLs, caches them in `graphdb/data/`, and loads them into
+two repositories, which takes several minutes. It is idempotent — re-running it
 when the repositories already exist exits cleanly.
+
+**The benchmark is not.** It carries no licence, so downloading the two CSV
+files is left to you. [`Benchmark/README.md`](Benchmark/README.md) says where
+they are and what to rename them to; the Docker build fails without them.
+
+Then pick one of the two deployments below. They differ only in where the
+language model runs; both stand up the same knowledge base.
 
 ### With an external LLM provider
 
@@ -344,15 +354,40 @@ server, `test` runs `MedMAS_DDx.evaluation.batch_runner`.
 
 ## Ontologies
 
-| Ontology | Role | Loaded into |
-|---|---|---|
-| **DOID** (Human Disease Ontology, international edition) | Disease vocabulary and the source of every candidate. Bundles SYMP terms. | `DoidOntologyRepository` |
-| **SYMP** (Symptom Ontology) | Symptom vocabulary. Disease–symptom links use `RO_0002452` ("has symptom"). | `DoidOntologyRepository` |
-| **HPO** (Human Phenotype Ontology) | Synonym bridge for colloquial phrasing. | `HpOntologyRepository` |
+| Ontology | Role | Loaded into | Release |
+|---|---|---|---|
+| **DOID** (Human Disease Ontology, international edition) | Disease vocabulary and the source of every candidate. Bundles SYMP terms. | `DoidOntologyRepository` | 2026-04-30 |
+| **SYMP** (Symptom Ontology) | Symptom vocabulary. Disease–symptom links use `RO_0002452` ("has symptom"). | `DoidOntologyRepository` | with DOID |
+| **HPO** (Human Phenotype Ontology) | Synonym bridge for colloquial phrasing. | `HpOntologyRepository` | 2026-02-16 |
 
 A disease enters the differential only if the graph already links it to a
 reported symptom. Symptoms that resolve to no concept are logged but excluded
 from retrieval, so an unrecognised term cannot distort the ranking.
+
+---
+
+## Third-party data
+
+Nothing here is redistributed. The ontologies are fetched automatically from
+their official OBO release URLs, which is what those URLs exist for. The
+benchmark is not: it carries no licence, so taking it is left as a deliberate
+step for whoever wants to reproduce the evaluation.
+
+| Data | Source | Terms |
+|---|---|---|
+| DOID + SYMP | [OBO release 2026-04-30](http://purl.obolibrary.org/obo/doid/releases/2026-04-30/translations/doid-international.owl) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) |
+| HPO | [OBO release 2026-02-16](http://purl.obolibrary.org/obo/hp/releases/2026-02-16/hp.owl) | [HPO's own terms](https://hpo.jax.org/) |
+| Q4Dx benchmark cases | [MaiWert/MedQDx](https://github.com/MaiWert/MedQDx) — download by hand | No licence stated — see below |
+
+The benchmark is the work of its authors, and using it means citing them:
+
+> M. Werthaim, M. Kimhi, A. Apartsin and Y. Aperstein, "A benchmark for
+> evaluating diagnostic questioning efficiency of LLMs in patient
+> conversations," *Scientific Reports*, vol. 16, no. 1, p. 6121, Jan. 2026.
+> doi: [10.1038/s41598-026-37022-y](https://doi.org/10.1038/s41598-026-37022-y)
+
+Details and the fetch scripts are in [`graphdb/README.md`](graphdb/README.md)
+and [`Benchmark/README.md`](Benchmark/README.md).
 
 ---
 
